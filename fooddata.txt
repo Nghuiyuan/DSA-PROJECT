@@ -1,7 +1,0 @@
-Spaghetti,Main Course,16.50
-Carbonara,Main Course,16.50
-French Fries,Side Dishes,12.00
-Coca Cola,Beverages,5.00
-Coconut Milk Shake,Beverages,13.90
-Pizza,Main Course,19.90
-Honey Lemon,Beverages,9.90

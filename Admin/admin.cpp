@@ -19,20 +19,20 @@ public:
 
     Admin() {}
 
-    Admin(string admin, string pw, bool locked, bool superAdmin, string s, int a, string contact) 
+    Admin(string admin, string pw, bool locked, bool superAdmin, string s, int a, string contact)
         : adminname(admin), password(pw), isLocked(locked), isSuperAdmin(superAdmin), sex(s), age(a), contactNumber(contact) {}
 
     void displayAdmin() const {
-        cout << "Admin's username: " << adminname 
-             << ", Locked: " << (isLocked ? "Yes" : "No")
-             << ", Role: " << (isSuperAdmin ? "Super Admin" : "Admin")
-             << ", Sex: " << sex
-             << ", Age: " << age
-             << ", Contact Number: " << contactNumber << endl;
+        cout << "Admin's username: " << adminname
+             << "\nLocked: " << (isLocked ? "Yes" : "No")
+             << "\nRole: " << (isSuperAdmin ? "Super Admin" : "Admin")
+             << "\nSex: " << sex
+             << "\nAge: " << age
+             << "\nContact Number: " << contactNumber << endl;
     }
 
     void displayProfile() const {
-        cout << "Admin's username: " << adminname 
+        cout << "Admin's username: " << adminname
              << ", Sex: " << sex
              << ", Age: " << age
              << ", Contact Number: " << contactNumber << endl;
@@ -73,15 +73,13 @@ void writeAdminsToFile(const string &afile, const vector<Admin> &admins) {
     ofstream file(afile.c_str());
     if (file.is_open()) {
         for (size_t i = 0; i < admins.size(); ++i) {
-            file << "Admin Details" << endl;
-            file << "Username: " << admins[i].adminname << endl;
-            file << "Password: " << admins[i].password << endl;
-            file << "Locked: " << (admins[i].isLocked ? "Yes" : "No") << endl;
-            file << "Role: " << (admins[i].isSuperAdmin ? "Super Admin" : "Admin") << endl;
-            file << "Sex: " << admins[i].sex << endl;
-            file << "Age: " << admins[i].age << endl;
-            file << "Contact Number: " << admins[i].contactNumber << endl;
-            file << "-----------------------------" << endl;
+            file << admins[i].adminname << ','
+                 << admins[i].password << ','
+                 << (admins[i].isLocked ? "1" : "0") << ','
+                 << (admins[i].isSuperAdmin ? "1" : "0") << ','
+                 << admins[i].sex << ','
+                 << admins[i].age << ','
+                 << admins[i].contactNumber << endl;
         }
         file.close();
     }
@@ -109,8 +107,8 @@ bool login(vector<Admin> &admins, const string &adminname, const string &passwor
 void addAdmin(vector<Admin> &admins, const string &adminname, const string &password, bool isSuperAdmin) {
     string sex, contact;
     int age;
-    int attempts = 0; 
-    
+    int attempts = 0;
+
     while (true) {
         cout << "Please enter sex (male/female): ";
         cin >> sex;
@@ -124,7 +122,7 @@ void addAdmin(vector<Admin> &admins, const string &adminname, const string &pass
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
         } else {
-            break; 
+            break;
         }
     }
 
@@ -137,20 +135,20 @@ void addAdmin(vector<Admin> &admins, const string &adminname, const string &pass
             attempts++;
             if (attempts >= 2) {
                 cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
-                return; 
+                return;
             }
             cout << "Invalid age! Please enter a number." << endl;
-            
+
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
         } else {
-            break; 
+            break;
         }
     }
 
-    cin.ignore(); 
+    cin.ignore();
 
-    attempts = 0; 
+    attempts = 0;
 
     while (true) {
         cout << "Please enter contact number: ";
@@ -159,7 +157,7 @@ void addAdmin(vector<Admin> &admins, const string &adminname, const string &pass
             attempts++;
             if (attempts >= 2) {
                 cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
-                return; 
+                return;
             }
             cout << "Invalid contact number! Please enter a number between 10 and 11 characters long." << endl;
         } else {
@@ -169,8 +167,6 @@ void addAdmin(vector<Admin> &admins, const string &adminname, const string &pass
 
     admins.push_back(Admin(adminname, password, false, isSuperAdmin, sex, age, contact));
 }
-
-
 
 void editProfile(Admin &admin) {
     string newPassword, newSex, newContact;
@@ -282,13 +278,8 @@ void editProfile(Admin &admin) {
     }
 }
 
-
 void viewAdminDetails(const Admin &admin) {
     admin.displayAdmin();
-}
-
-void viewProfile(const Admin &admin) {
-    admin.displayProfile();
 }
 
 void lockUnlockAdmin(Admin &admin) {
@@ -297,12 +288,13 @@ void lockUnlockAdmin(Admin &admin) {
 
 void deleteAdmin(vector<Admin> &admins, const string &adminname) {
     for (size_t i = 0; i < admins.size(); ++i) {
-    	if (admins[i].adminname == adminname) {
+        if (admins[i].adminname == adminname) {
             admins.erase(admins.begin() + i);
             break;
         }
     }
 }
+
 
 int main() {
     const string afile = "admin.txt";
@@ -322,7 +314,7 @@ int main() {
         cout << "Enter Super Admin password: ";
         getline(cin, password);
 
-        addAdmin(admins, adminname, password, true); 
+        addAdmin(admins, adminname, password, true);
         writeAdminsToFile(afile, admins);
 
         cout << "Super Admin account created successfully!" << endl;
@@ -338,10 +330,9 @@ int main() {
         cout << "2. Add Admin (Super Admin only)" << endl;
         cout << "3. Edit Profile" << endl;
         cout << "4. View Admin Details" << endl;
-        cout << "5. View Profile" << endl;
-        cout << "6. Lock and Unlock Admin (Super Admin only)" << endl;
-        cout << "7. Delete Admin (Super Admin only)" << endl;
-        cout << "8. Exit" << endl;
+        cout << "5. Lock and Unlock Admin (Super Admin only)" << endl;
+        cout << "6. Delete Admin (Super Admin only)" << endl;
+        cout << "7. Exit" << endl;
         cout << "-----------------------------" << endl;
         cout << "\nPlease enter your choice: ";
         cin >> choice;
@@ -378,7 +369,7 @@ int main() {
                 getline(cin, adminname);
                 cout << "Please enter new admin password: ";
                 getline(cin, password);
-                addAdmin(admins, adminname, password, false); 
+                addAdmin(admins, adminname, password, false);
                 writeAdminsToFile(afile, admins);
                 cout << "\nAdmin added successfully!" << endl;
                 break;
@@ -423,21 +414,6 @@ int main() {
             }
 
             case 5: {
-                cout << "-----------------------------" << endl;
-                cout << "View Profile" << endl;
-                cout << "-----------------------------" << endl;
-                cout << "Enter your username: ";
-                getline(cin, adminname);
-                Admin* viewProfileAdmin = findAdmin(admins, adminname);
-                if (viewProfileAdmin != NULL) {
-                    viewProfile(*viewProfileAdmin);
-                } else {
-                    cout << "Admin not found!" << endl;
-                }
-                break;
-            }
-
-            case 6: {
                 if (!isSuperAdmin) {
                     cout << "Only Super Admin can lock/unlock an admin." << endl;
                     break;
@@ -459,7 +435,7 @@ int main() {
                 break;
             }
 
-            case 7: {
+            case 6: {
                 if (!isSuperAdmin) {
                     cout << "Only Super Admin can delete an admin." << endl;
                     break;
@@ -476,7 +452,7 @@ int main() {
                 break;
             }
 
-            case 8:
+            case 7:
                 return 0;
 
             default:
@@ -486,3 +462,4 @@ int main() {
 
     return 0;
 }
+

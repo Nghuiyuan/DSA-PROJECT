@@ -1,9 +1,1 @@
-Admin Details
-Username: wenqi126
-Password: wenqi1206
-Locked: No
-Role: Super Admin
-Sex: female
-Age: 20
-Contact Number: 01121116600
------------------------------
+wenqi126,wenqi1206,0,1,female,20,01121116600

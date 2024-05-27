@@ -73,16 +73,20 @@ void writeAdminsToFile(const string &afile, const vector<Admin> &admins) {
     ofstream file(afile.c_str());
     if (file.is_open()) {
         for (size_t i = 0; i < admins.size(); ++i) {
-            file << admins[i].adminname << "," << admins[i].password << "," 
-                 << (admins[i].isLocked ? "1" : "0") << "," 
-                 << (admins[i].isSuperAdmin ? "1" : "0") << ","
-                 << admins[i].sex << ","
-                 << admins[i].age << ","
-                 << admins[i].contactNumber << endl;
+            file << "Admin Details" << endl;
+            file << "Username: " << admins[i].adminname << endl;
+            file << "Password: " << admins[i].password << endl;
+            file << "Locked: " << (admins[i].isLocked ? "Yes" : "No") << endl;
+            file << "Role: " << (admins[i].isSuperAdmin ? "Super Admin" : "Admin") << endl;
+            file << "Sex: " << admins[i].sex << endl;
+            file << "Age: " << admins[i].age << endl;
+            file << "Contact Number: " << admins[i].contactNumber << endl;
+            file << "-----------------------------" << endl;
         }
         file.close();
     }
 }
+
 
 Admin* findAdmin(vector<Admin> &admins, const string &adminname) {
     for (size_t i = 0; i < admins.size(); ++i) {
@@ -295,7 +299,7 @@ void deleteAdmin(vector<Admin> &admins, const string &adminname) {
     for (size_t i = 0; i < admins.size(); ++i) {
     	if (admins[i].adminname == adminname) {
             admins.erase(admins.begin() + i);
-            break; // Exit the loop once the admin is deleted
+            break;
         }
     }
 }
@@ -482,4 +486,3 @@ int main() {
 
     return 0;
 }
-

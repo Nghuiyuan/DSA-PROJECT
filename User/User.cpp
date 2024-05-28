@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <fstream>
 using namespace std;
 
@@ -22,6 +22,9 @@ public:
 
     const string& getUsername() const { return username; }
     const string& getPassword() const { return password; }
+    const string& getFullName() const { return fullName; }
+    const string& getContactNumber() const { return contactNumber; }
+    const string& getEmail() const { return email; }
 
     void save(ofstream& outFile) const {
         outFile << fullName << "," << username << "," << contactNumber << "," << email << "," << password << "\n";
@@ -85,7 +88,8 @@ public:
             return;
         }
         users[username] = User(fullName, username, contactNumber, email, password);
-        cout << "Registration successful. Please log in now.\n";
+        cout << "Registration successful. Logging in...\n";
+        loggedInUser = &users[username];
     }
 
     User* loginUser() {
@@ -96,26 +100,47 @@ public:
         cout << "Password: ";
         getline(cin, password);
 
-        map<string, User>::iterator it = users.find(username);
+        auto it = users.find(username);
         if (it != users.end() && it->second.getPassword() == password) {
             cout << "Login successful.\n";
             return &it->second;
         }
         cout << "Invalid username or password.\n";
-        return NULL;
+        return nullptr;
     }
 
     void editUserProfile(User* user) {
         if (user) {
             string fullName, contactNumber, email;
-            cout << "\nNew full name: ";
+            cout << "\nCurrent profile details:\n";
+            cout << "Full name: " << user->getFullName() << "\n";
+            cout << "Contact number: " << user->getContactNumber() << "\n";
+            cout << "Email: " << user->getEmail() << "\n";
+
+            cout << "\nEnter new details:\n";
+            cout << "New full name: ";
             getline(cin, fullName);
             cout << "New contact number: ";
             getline(cin, contactNumber);
             cout << "New email: ";
             getline(cin, email);
-            user->editProfile(fullName, contactNumber, email);
-            cout << "Profile updated successfully.\n";
+
+            cout << "\nUpdated profile details:\n";
+            cout << "Full name: " << fullName << "\n";
+            cout << "Contact number: " << contactNumber << "\n";
+            cout << "Email: " << email << "\n";
+
+            char confirm;
+            cout << "Do you want to save the changes? (y/n): ";
+            cin >> confirm;
+            cin.ignore();
+
+            if (confirm == 'y' || confirm == 'Y') {
+                user->editProfile(fullName, contactNumber, email);
+                cout << "Profile updated successfully.\n";
+            } else {
+                cout << "Profile update canceled.\n";
+            }
         }
     }
 
@@ -149,52 +174,76 @@ public:
         cout << "===================================\n";
         cout << "---Welcome to Reservation System---\n";
         cout << "===================================\n";
-        cout << "1. Register\n2. Login\n3. Edit Profile\n4. Change Password\n5. Exit\nEnter your choice: ";
+        if (loggedInUser) {
+            cout << "1. Profile\n2. Logout\n";
+        } else {
+            cout << "1. Register\n2. Login\n3. Exit\n";
+        }
+        cout << "Enter your choice: ";
+    }
+
+    void displayProfileMenu() {
+        cout << "========== Profile Menu ==========\n";
+        cout << "1. Edit Profile\n2. Change Password\n3. Back to Main Menu\n";
+        cout << "Enter your choice: ";
     }
 
     void run() {
-        User* loggedInUser = NULL;
         int choice;
-
         do {
             displayMainMenu();
             cin >> choice;
             cin.ignore();
 
-            switch (choice) {
-                case 1:
-                    registerUser();
-                    break;
-                case 2:
-                    loggedInUser = loginUser();
-                    break;
-                case 3:
-                case 4:
-                    if (!loggedInUser) {
-                        cout << "Please login first.\n";
-                        loggedInUser = loginUser();
-                        if (!loggedInUser) {
-                            break;
+            if (loggedInUser) {
+                if (choice == 1) {
+                    int profileChoice;
+                    do {
+                        displayProfileMenu();
+                        cin >> profileChoice;
+                        cin.ignore();
+                        switch (profileChoice) {
+                            case 1:
+                                editUserProfile(loggedInUser);
+                                break;
+                            case 2:
+                                changeUserPassword(loggedInUser);
+                                break;
+                            case 3:
+                                break;
+                            default:
+                                cout << "Invalid choice.\n";
+                                break;
                         }
-                    }
-                    if (choice == 3) {
-                        editUserProfile(loggedInUser);
-                    } else if (choice == 4) {
-                        changeUserPassword(loggedInUser);
-                    }
-                    break;
-                case 5:
-                    cout << "Exiting...\n";
-                    break;
-                default:
+                    } while (profileChoice != 3);
+                } else if (choice == 2) {
+                    loggedInUser = nullptr;
+                    cout << "Logged out successfully.\n";
+                } else {
                     cout << "Invalid choice.\n";
-                    break;
+                }
+            } else {
+                switch (choice) {
+                    case 1:
+                        registerUser();
+                        break;
+                    case 2:
+                        loggedInUser = loginUser();
+                        break;
+                    case 3:
+                        cout << "Exiting...\n";
+                        return;
+                    default:
+                        cout << "Invalid choice.\n";
+                        break;
+                }
             }
-        } while (choice != 5);
+        } while (true);
     }
 
 private:
-    map<string, User> users;
+    unordered_map<string, User> users;
+    User* loggedInUser = nullptr;
     static const string fileName;
 
     void loadUsers() {
@@ -208,8 +257,8 @@ private:
 
     void saveUsers() {
         ofstream outFile(fileName.c_str());
-        for (map<string, User>::const_iterator it = users.begin(); it != users.end(); ++it) {
-            it->second.save(outFile);
+        for (const auto& pair : users) {
+            pair.second.save(outFile);
         }
     }
 };

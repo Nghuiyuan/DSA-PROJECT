@@ -2,6 +2,8 @@
 #include <string>
 #include <unordered_map>
 #include <fstream>
+#include <cctype>
+#include <limits>
 using namespace std;
 
 class User {
@@ -64,32 +66,47 @@ public:
 
     void registerUser() {
         string fullName, username, contactNumber, email, password, confirmPassword;
-        cout << "\nPlease enter your information\n";
-        cout << "Full name: ";
-        getline(cin, fullName);
-        cout << "Username: ";
-        getline(cin, username);
-        cout << "Contact number: ";
-        getline(cin, contactNumber);
-        cout << "Email: ";
-        getline(cin, email);
-        cout << "Password: ";
-        getline(cin, password);
-        cout << "Confirm Password: ";
-        getline(cin, confirmPassword);
+        while (true) {
+            cout << "\nPlease enter your information\n";
+            cout << "Full name: ";
+            getline(cin, fullName);
+            cout << "Username: ";
+            getline(cin, username);
 
-        if (password != confirmPassword) {
-            cout << "Passwords do not match. Please register again.\n";
-            return;
-        }
+            cout << "Contact number: ";
+            getline(cin, contactNumber);
+            if (!isValidPhoneNumber(contactNumber)) {
+                cout << "Invalid contact number. Please try again.\n";
+                continue;
+            }
 
-        if (users.find(username) != users.end()) {
-            cout << "Username already exists. Please register again.\n";
-            return;
+            cout << "Email: ";
+            getline(cin, email);
+            if (!isValidEmail(email)) {
+                cout << "Invalid email format. Please try again.\n";
+                continue;
+            }
+
+            cout << "Password: ";
+            getline(cin, password);
+            cout << "Confirm Password: ";
+            getline(cin, confirmPassword);
+
+            if (password != confirmPassword) {
+                cout << "Passwords do not match. Please try again.\n";
+                continue;
+            }
+
+            if (users.find(username) != users.end()) {
+                cout << "Username already exists. Please try again.\n";
+                continue;
+            }
+
+            users[username] = User(fullName, username, contactNumber, email, password);
+            cout << "Registration successful. Logging in...\n";
+            loggedInUser = &users[username];
+            break;
         }
-        users[username] = User(fullName, username, contactNumber, email, password);
-        cout << "Registration successful. Logging in...\n";
-        loggedInUser = &users[username];
     }
 
     User* loginUser() {
@@ -112,34 +129,46 @@ public:
     void editUserProfile(User* user) {
         if (user) {
             string fullName, contactNumber, email;
-            cout << "\nCurrent profile details:\n";
-            cout << "Full name: " << user->getFullName() << "\n";
-            cout << "Contact number: " << user->getContactNumber() << "\n";
-            cout << "Email: " << user->getEmail() << "\n";
+            while (true) {
+                cout << "\nCurrent profile details:\n";
+                cout << "Full name: " << user->getFullName() << "\n";
+                cout << "Contact number: " << user->getContactNumber() << "\n";
+                cout << "Email: " << user->getEmail() << "\n";
 
-            cout << "\nEnter new details:\n";
-            cout << "New full name: ";
-            getline(cin, fullName);
-            cout << "New contact number: ";
-            getline(cin, contactNumber);
-            cout << "New email: ";
-            getline(cin, email);
+                cout << "\nEnter new details:\n";
+                cout << "New full name: ";
+                getline(cin, fullName);
+                cout << "New contact number: ";
+                getline(cin, contactNumber);
+                if (!isValidPhoneNumber(contactNumber)) {
+                    cout << "Invalid contact number. Please try again.\n";
+                    continue;
+                }
+                cout << "New email: ";
+                getline(cin, email);
+                if (!isValidEmail(email)) {
+                    cout << "Invalid email format. Please try again.\n";
+                    continue;
+                }
 
-            cout << "\nUpdated profile details:\n";
-            cout << "Full name: " << fullName << "\n";
-            cout << "Contact number: " << contactNumber << "\n";
-            cout << "Email: " << email << "\n";
+                cout << "\nUpdated profile details:\n";
+                cout << "Full name: " << fullName << "\n";
+                cout << "Contact number: " << contactNumber << "\n";
+                cout << "Email: " << email << "\n";
 
-            char confirm;
-            cout << "Do you want to save the changes? (y/n): ";
-            cin >> confirm;
-            cin.ignore();
+                char confirm;
+                cout << "Do you want to save the changes? (y/n): ";
+                cin >> confirm;
+                cin.ignore();
 
-            if (confirm == 'y' || confirm == 'Y') {
-                user->editProfile(fullName, contactNumber, email);
-                cout << "Profile updated successfully.\n";
-            } else {
-                cout << "Profile update canceled.\n";
+                if (confirm == 'y' || confirm == 'Y') {
+                    user->editProfile(fullName, contactNumber, email);
+                    cout << "Profile updated successfully.\n";
+                    break;
+                } else {
+                    cout << "Profile update canceled.\n";
+                    break;
+                }
             }
         }
     }
@@ -147,26 +176,29 @@ public:
     void changeUserPassword(User* user) {
         if (user) {
             string currentPassword, newPassword, confirmPassword;
-            cout << "Current password: ";
-            getline(cin, currentPassword);
+            while (true) {
+                cout << "Current password: ";
+                getline(cin, currentPassword);
 
-            if (currentPassword != user->getPassword()) {
-                cout << "Current password is incorrect.\n";
-                return;
+                if (currentPassword != user->getPassword()) {
+                    cout << "Current password is incorrect. Please try again.\n";
+                    continue;
+                }
+
+                cout << "New password: ";
+                getline(cin, newPassword);
+                cout << "Confirm new password: ";
+                getline(cin, confirmPassword);
+
+                if (newPassword != confirmPassword) {
+                    cout << "New passwords do not match. Please try again.\n";
+                    continue;
+                }
+
+                user->changePassword(newPassword);
+                cout << "Password changed successfully.\n";
+                break;
             }
-
-            cout << "New password: ";
-            getline(cin, newPassword);
-            cout << "Confirm new password: ";
-            getline(cin, confirmPassword);
-
-            if (newPassword != confirmPassword) {
-                cout << "New passwords do not match.\n";
-                return;
-            }
-
-            user->changePassword(newPassword);
-            cout << "Password changed successfully.\n";
         }
     }
 
@@ -192,7 +224,12 @@ public:
         int choice;
         do {
             displayMainMenu();
-            cin >> choice;
+            if (!(cin >> choice)) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Invalid input. Please enter a number.\n";
+                continue;
+            }
             cin.ignore();
 
             if (loggedInUser) {
@@ -200,7 +237,12 @@ public:
                     int profileChoice;
                     do {
                         displayProfileMenu();
-                        cin >> profileChoice;
+                        if (!(cin >> profileChoice)) {
+                            cin.clear();
+                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                            cout << "Invalid input. Please enter a number.\n";
+                            continue;
+                        }
                         cin.ignore();
                         switch (profileChoice) {
                             case 1:
@@ -261,9 +303,22 @@ private:
             pair.second.save(outFile);
         }
     }
+
+    bool isValidPhoneNumber(const string& number) {
+        for (char c : number) {
+            if (!isdigit(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool isValidEmail(const string& email) {
+        return email.find('@') != string::npos;
+    }
 };
 
-const string UserManager::fileName = "user.txt";
+const string UserManager::fileName = "users.txt";
 
 int main() {
     UserManager userManager;

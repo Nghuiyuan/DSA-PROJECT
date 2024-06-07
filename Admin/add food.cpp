@@ -5,10 +5,12 @@
 #include <fstream>
 #include <cstdlib>
 #include <sstream> 
+#include <cctype> 
+#include <algorithm> 
+
+
 using namespace std;
-
 void mainmenu();
-
 struct Food {
     string name;
     string category;
@@ -34,8 +36,49 @@ bool isValidPrice(double price) {
 
 class FoodList {
 private:
-    Food* head;
+    Food* head;// Pointer to the head of the linked list
+        // Merge two sorted lists based on ascending order
+ 	 Food* merge(Food* left, Food* right, bool ascending) {
+        if (!left) return right;
+        if (!right) return left;
+        // Decide the merge order based on the ascending parameter
+        if ((ascending && left->name <= right->name) || (!ascending && left->name >= right->name)) {
+            left->next = merge(left->next, right, ascending);
+            return left;
+        } else {
+            right->next = merge(left, right->next, ascending);
+            return right;
+        }
+    }
+    // Find the middle of the list to split it
+    Food* getMiddle(Food* head) {
+        if (head == nullptr) return head;
+        Food* slow = head;
+        Food* fast = head->next;
 
+        while (fast != nullptr && fast->next != nullptr) {
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+
+        return slow;
+    }
+    // Perform merge sort on the list
+    Food* mergeSort(Food* head, bool ascending) {
+        if (!head || !head->next) return head;
+
+        Food* middle = getMiddle(head);
+        Food* nextToMiddle = middle->next;
+
+        middle->next = nullptr;
+
+        Food* left = mergeSort(head, ascending);
+        Food* right = mergeSort(nextToMiddle, ascending);
+
+        return merge(left, right, ascending);
+    }
+
+	
 public:
     FoodList() : head(nullptr) {}
 
@@ -97,7 +140,13 @@ public:
 
     outFile.close();
 }
+ void sortByNameAZ() {
+        head = mergeSort(head, true);
+    }
 
+    void sortByNameZA() {
+        head = mergeSort(head, false);
+    }
     void printFoodList() {
         Food* temp = head;
         int i=0;
@@ -144,8 +193,157 @@ public:
 
     return temp;
 }
+void deleteFood(const string& nameToDelete) {
+    if (head == NULL) {
+        cerr << "Food list is empty. Nothing to delete." << endl;
+        return;
+    }
 
-    
+    Food* current = head;
+    Food* prev = NULL;
+
+    // Search for the food item to delete
+    while (current != NULL && current->name != nameToDelete) {
+        prev = current;
+        current = current->next;
+    }
+
+    // If the food item was not found
+    if (current == NULL) {
+        cerr << "\nFood item '" << nameToDelete << "' not found in the list." << endl;
+        return;
+    }
+
+    // If the found food item is the head of the list
+    if (prev == NULL) {
+        head = head->next;
+        delete current;
+    } else {
+        prev->next = current->next;
+        delete current;
+    }
+	saveDataToFile("fooddata.txt");
+    cout << "\nFood item '" << nameToDelete << "' deleted successfully." << endl;
+	 cout << "Back to menu management page..." << endl;
+}
+
+void searchByCategory(const string& targetCategory) {
+	system("cls");
+    bool found = false; // Flag to indicate if any matching food items are found
+    Food* temp = head; // Temporary pointer to traverse the food linked list
+    int count = 0; // Count of matching food items
+    string uppercaseTargetCategory = targetCategory;
+    transform(uppercaseTargetCategory.begin(), uppercaseTargetCategory.end(), uppercaseTargetCategory.begin(), ::toupper); // Convert target category to uppercase
+
+    string word;
+    stringstream ss(uppercaseTargetCategory);
+
+    // Process target category word by word
+    while (ss >> word) {
+        // Traverse the food linked list to find foods matching the specified category
+        temp = head;
+        while (temp != nullptr) {
+            string uppercaseCategory = temp->category;
+            transform(uppercaseCategory.begin(), uppercaseCategory.end(), uppercaseCategory.begin(), ::toupper); // Convert current food's category to uppercase
+
+            // If the current food's category contains the word from the target category, print food information
+            if (uppercaseCategory.find(word) != string::npos) {
+                if (!found) {
+                    cout << "\n\nFood items in category '" << targetCategory << "':" << endl;
+                    cout << "--------------------------------------------------------------------" << endl;
+                    cout << setw(3) << "No.  " << setw(35) << left << "Food" << setw(15) << "Category" << setw(10) << "Price" << endl;
+                    cout << "--------------------------------------------------------------------" << endl;
+                    found = true;
+                }
+                cout << setw(4) << ++count << setw(35) << left << temp->name << setw(15) << temp->category << setw(2) << "RM" << setw(8) << fixed << setprecision(2) << temp->price << endl;
+            }
+            temp = temp->next; // Move to the next food node
+        }
+    }
+
+    if (!found) {
+        cout << "No food items found in category '" << targetCategory << "'." << endl;
+    }
+    cout<<"\n\nBack To Menu Manegement Page..."<<endl;
+}  
+
+void searchByname(const string& targetname) {
+	system("cls");
+    bool found = false; // Flag to indicate if any matching food items are found
+    Food* temp = head; // Temporary pointer to traverse the food linked list
+    int count = 0; // Count of matching food items
+    string uppercaseTargetName = targetname;
+    transform(uppercaseTargetName.begin(), uppercaseTargetName.end(), uppercaseTargetName.begin(), ::toupper); // Convert target category to uppercase
+
+    string word;
+    stringstream ss(uppercaseTargetName);
+
+    // Process target category word by word
+    while (ss >> word) {
+        // Traverse the food linked list to find foods matching the specified category
+        temp = head;
+        while (temp != nullptr) {
+            string uppercasename = temp->name;
+            transform(uppercasename.begin(), uppercasename.end(), uppercasename.begin(), ::toupper); // Convert current food's category to uppercase
+
+            // If the current food's category contains the word from the target category, print food information
+            if (uppercasename.find(word) != string::npos) {
+                if (!found) {
+					cout << "\n\nSearch Result of '" << targetname << "' :" << endl;
+                    cout << "--------------------------------------------------------------------" << endl;
+                    cout << setw(3) << "No.  " << setw(35) << left << "Food" << setw(15) << "Category" << setw(10) << "Price" << endl;
+                    cout << "--------------------------------------------------------------------" << endl;
+                    found = true;
+                }
+                cout << setw(4) << ++count << setw(35) << left << temp->name << setw(15) << temp->category << setw(2) << "RM" << setw(8) << fixed << setprecision(2) << temp->price << endl;
+            }
+            temp = temp->next; // Move to the next food node
+        }
+    }
+
+    if (!found) {
+        cout << "No food items found in category '" << targetname << "'." << endl;
+    }
+    cout<<"\n\nBack To Menu Manegement Page..."<<endl;
+}
+  
+  void insertionSort(Food*& head, bool ascending) {
+    if (head == nullptr || head->next == nullptr) return;
+
+    Food* sorted = nullptr;
+    Food* current = head;
+
+    while (current != nullptr) {
+        Food* next = current->next;
+
+        if (ascending && (sorted == nullptr || current->price <= sorted->price) ||
+            !ascending && (sorted == nullptr || current->price >= sorted->price)) {
+            current->next = sorted;
+            sorted = current;
+        } else {
+            Food* temp = sorted;
+            while (temp->next != nullptr && ((ascending && temp->next->price < current->price) ||
+                                             (!ascending && temp->next->price > current->price))) {
+                temp = temp->next;
+            }
+            current->next = temp->next;
+            temp->next = current;
+        }
+
+        current = next;
+    }
+
+    head = sorted;
+}
+
+  void sortByPriceAscending() {
+    insertionSort(head, true);
+}
+
+void sortByPriceDescending() {
+    insertionSort(head, false);
+}
+  
 };
 
 class foodmenu{
@@ -154,11 +352,12 @@ class foodmenu{
 	foodmenu()
 	{    food.readDataFromFile("fooddata.txt");
 	}
+	
 	void displayaction()
-	{	string ans;
+	{	string ans,fname,foodname;
 		bool valid=false;
 		cout<<"===================================================================="<<endl;
-		cout<<"\t\tFood Management"<<endl;
+		cout<<"\t\tMenu Management"<<endl;
 		cout<<"===================================================================="<<endl;
 		cout<<setw(3)<<"No.  "<<setw(35)<<left<<"Food"<<setw(15)<<"Category"<<setw(10)<<"Price"<<endl;
 		cout<<"--------------------------------------------------------------------"<<endl;
@@ -166,6 +365,12 @@ class foodmenu{
 		cout<<"\nOperation:\n1.Add Food"<<endl;
 		cout<<"2.Edit Food"<<endl;
 		cout<<"3.Delete Food"<<endl;
+		cout<<"4.Search by Category Name (linear search)"<<endl;
+		cout<<"5.Search by Food Name (linear search)"<<endl; 
+		cout << "6.Sort Food by A-Z (merge sort)" << endl;
+		cout << "7.Sort Food by Z-A (merge sort)" << endl;
+cout << "8.Sort Food by price low to high (insertion sort)" << endl;
+cout << "9.Sort Food by price high to low (insertion sort)" << endl;
 		cout << "\nIf you want to go back to the main page, please enter 'm'." << endl;
 		cout << "If you want to exit, please enter 'e'." << endl;
 		cout<<"\nPlease select an action by entering its number: ";
@@ -183,9 +388,57 @@ class foodmenu{
 			editfood();
 		}
 		else if(ans=="3")
-		{
-			valid=true;
-		}else{
+		{valid=true;
+		deletefood();
+		}else if (ans == "4") {
+		    cin.ignore();
+		    valid = true;
+		    string category;
+		    cout<<"----------------------------"<<endl;
+		    cout<<"   Search By Category"<<endl;
+		    cout<<"----------------------------"<<endl;
+		    cout << "Enter Category Name : ";
+		    getline(cin, category);
+		    food.searchByCategory(category);
+		    displayaction();
+		}else if (ans == "5") {
+		    cin.ignore();
+		    valid = true;
+		    string category;
+		    cout<<"----------------------------"<<endl;
+		    cout<<"   Search By Food Name"<<endl;
+		    cout<<"----------------------------"<<endl;
+		    cout << "Enter Food Name : ";
+		    getline(cin, foodname);
+		    food.searchByname(foodname);
+		    displayaction();
+		}
+		else if (ans == "6") {
+                valid = true;
+                food.sortByNameAZ();
+                system("cls");
+                cout << "Food sorted by A-Z :\n";
+                displayaction();
+            } else if (ans == "7") {
+                valid = true;
+                food.sortByNameZA();
+                system("cls");
+                cout << "Food sorted by Z-A :\n";
+                displayaction();
+            }else if (ans == "8") {
+    valid = true;
+    food.sortByPriceAscending();
+    system("cls");
+    cout << "Food sorted by price in ascending order:\n";
+    displayaction();
+} else if (ans == "9") {
+    valid = true;
+    food.sortByPriceDescending();
+    system("cls");
+    cout << "Food sorted by price in descending order:\n";
+    displayaction();
+}
+else{
 			cout<<"Invalid selection.Please reenter your selection : ";
 			cin>>ans;}
 		}while(!valid);
@@ -274,7 +527,7 @@ class foodmenu{
 		}else if(confirm=="N"||confirm=="n")
 		{	valid=true;system("cls");
 
-			cout<<"Back to food management page..."<<endl;
+			cout<<"Back to menu management page..."<<endl;
 			displayaction();
 		}else{
 			cout<<"Invalid Input.Please reenter your input : ";
@@ -291,8 +544,8 @@ class foodmenu{
 		cout << "Food Price : RM" << fixed << setprecision(2) << price << endl;
 	}
 	
-	void editfood() {
-		system("cls");
+void editfood() {
+	system("cls");
     cout<<"===================================================================="<<endl;
 	cout<<"	Edit Food  "<<endl;
 	cout<<"===================================================================="<<endl;
@@ -302,15 +555,36 @@ class foodmenu{
 	cout << "\nIf you want to go back to the previous page, please enter 'b'." << endl;
 	cout << "If you want to go back to the main page, please enter 'm'." << endl;
 	cout << "If you want to exit, please enter 'e'." << endl;
+    string input;
+    bool valid=false;
+    bool inputvalid=false;
     int index;
     cout << "Enter the index of the food item you want to edit: ";
-    cin >> index;
-    while(index < 1 || index > food.getCount()) {
-		cin.clear();
-        cout << "Invalid index. Please enter a valid index:" ;
-        cin >> index;
-        
+    cin >> input;   
+do {
+if(input=="B"||input=="b"){
+    	system("cls");
+    	displayaction();
+	}
+    if (!checkinput(input)) {
+        if (isdigit(input[0])) { 
+            index = stoi(input);
+            if (index < 1 || index > food.getCount()) {
+                cout << "Invalid index. Please enter a valid index: ";
+                cin >> input;
+            } else {
+                inputvalid = true;
+            }
+        } else {
+            cout << "Invalid input. Please enter a valid input: ";
+            cin >> input;
+        }
+    } else {
+        inputvalid = true;
     }
+} while (!inputvalid);
+
+ 
 
     // Retrieve the food item from the linked list
     Food* temp = food.getFoodAtIndex(index);
@@ -318,7 +592,6 @@ class foodmenu{
     // Prompt the user for changes
     string newName, newCategory;
     float newPrice;
-    bool valid=false;
     string category,ans,confirm;
     cout << "\nEnter the new name: ";
 	fflush(stdin);
@@ -376,7 +649,7 @@ class foodmenu{
 		}else if(confirm=="N"||confirm=="n")
 		{	valid=true;system("cls");
 
-			cout<<"Back to food management page..."<<endl;
+			cout<<"Back to menu management page..."<<endl;
 			displayaction();
 		}else{
 			cout<<"Invalid Input.Please reenter your input : ";
@@ -384,9 +657,81 @@ class foodmenu{
 	}while(!valid);
     
 }
+void deletefood() {
+    system("cls");
+    bool inputvalid=false;
+    int index=0;
+    cout << "====================================================================" << endl;
+    cout << "\t\tDelete Food" << endl;
+    cout << "====================================================================" << endl;
+    cout << setw(3) << "No.  " << setw(35) << left << "Food" << setw(15) << "Category" << setw(10) << "Price" << endl;
+    cout << "--------------------------------------------------------------------" << endl;
+    food.printFoodList();
+    cout << "\nIf you want to go back to the previous page, please enter 'b'." << endl;
+    cout << "If you want to go back to the main page, please enter 'm'." << endl;
+    cout << "If you want to exit, please enter 'e'." << endl;
+    string nameToDelete;
+    cout << "\nEnter the Index of the food item you want to delete: ";
+		fflush(stdin);
+	    getline(cin, nameToDelete);
+   do {
+		if(nameToDelete=="B"||nameToDelete=="b"){
+	    	system("cls");
+	    	displayaction();
+		}
+	    if (!checkinput(nameToDelete)) {
+	        if (isdigit(nameToDelete[0])) { 
+	            index = stoi(nameToDelete);
+	            if (index < 1 || index > food.getCount()) {
+	                cout << "Invalid index. Please enter a valid index: ";
+	                getline(cin, nameToDelete);
+	            } else {
+	                inputvalid = true;
+	            }
+	        } else {
+	            cout << "Invalid input. Please enter a valid input: ";
+	            getline(cin, nameToDelete);
+	        }
+	    } else {
+	        inputvalid = true;
+	    }
+} while (!inputvalid);
+ 	bool deleteans=false;
+ 	string confirm;
+ 	Food* temp = food.getFoodAtIndex(index);
+	displayfooddetails(temp->category,temp->name,temp->price);
+	cout<<"Are you sure you want to delete this food ? [Y/N] : ";
+	do{
+    	cin>>confirm;
+    	cin.clear();
+    	if(confirm=="Y"||confirm=="y")
+    	{
+		   nameToDelete=temp->name;
+		 // Delete the food item
+	    food.deleteFood(nameToDelete);
+	    food.saveDataToFile("fooddata.txt");
+	    system("cls");
+	    cout<<"Food deleted successfully!!!"<<endl;
+	    cout<<"Back to menu management page..."<<endl;
+	    displayaction();
+    		deleteans=true;
+    		
+		}else if(confirm=="N"||confirm=="n")
+		{	deleteans=true;
+			system("cls");
+			cout<<"Back to menu management page..."<<endl;
+			displayaction();
+		}else{
+			cout<<"Invalid Input.Please reenter your input : ";
+		}
+	}while(!deleteans);
+   
+}
+
 
 	
 };
+
 void mainmenu()
 {	foodmenu menu;
 string selection;
@@ -394,7 +739,7 @@ bool valid=false;
 	cout<<"===================================================================="<<endl;
 	cout<<"\tRestaurant Reservation Management System"<<endl;
 	cout<<"===================================================================="<<endl;
-	cout<<"1.Food Management"<<endl;
+	cout<<"1.Menu Management"<<endl;
 	cout << "If you want to exit, please enter 'e'." << endl;
 	cout<<"\nPlease enter your selection : "; 
 	cin>>selection;

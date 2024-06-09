@@ -8,9 +8,9 @@ using namespace std;
 
 class User {
 public:
-    User() {}
-    User(const string& fullName, const string& username, const string& contactNumber, const string& email, const string& password)
-        : fullName(fullName), username(username), contactNumber(contactNumber), email(email), password(password) {}
+    User() : isLocked(false) {}
+    User(const string& fullName, const string& username, const string& contactNumber, const string& email, const string& password, bool isLocked = false)
+        : fullName(fullName), username(username), contactNumber(contactNumber), email(email), password(password), isLocked(isLocked) {}
 
     void editProfile(const string& newFullName, const string& newContactNumber, const string& newEmail) {
         fullName = newFullName;
@@ -27,23 +27,25 @@ public:
     const string& getFullName() const { return fullName; }
     const string& getContactNumber() const { return contactNumber; }
     const string& getEmail() const { return email; }
+    bool getIsLocked() const { return isLocked; }
+    void setIsLocked(bool locked) { isLocked = locked; }
 
     void save(ofstream& outFile) const {
-        outFile << fullName << "," << username << "," << contactNumber << "," << email << "," << password << "\n";
+        outFile << fullName << "," << username << "," << contactNumber << "," << email << "," << password << "," << isLocked << "\n";
     }
 
     static User load(const string& line) {
         size_t pos = 0;
         size_t prev = 0;
-        string tokens[5];
+        string tokens[6];
         int i = 0;
-        while ((pos = line.find(',', prev)) != string::npos && i < 5) {
+        while ((pos = line.find(',', prev)) != string::npos && i < 6) {
             tokens[i++] = line.substr(prev, pos - prev);
             prev = pos + 1;
         }
         tokens[i] = line.substr(prev);
 
-        return User(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4]);
+        return User(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4], tokens[5] == "1");
     }
 
 private:
@@ -52,6 +54,7 @@ private:
     string contactNumber;
     string email;
     string password;
+    bool isLocked;
 };
 
 class UserManager {
@@ -118,13 +121,20 @@ public:
         getline(cin, password);
 
         auto it = users.find(username);
-        if (it != users.end() && it->second.getPassword() == password) {
-            cout << "Login successful.\n";
-            return &it->second;
+        if (it != users.end()) {
+            if (it->second.getIsLocked()) {
+                cout << "Your account is locked." << endl;
+                return nullptr;
+            }
+            if (it->second.getPassword() == password) {
+                cout << "Login successful.\n";
+                return &it->second;
+            }
         }
         cout << "Invalid username or password.\n";
         return nullptr;
     }
+
 
     void editUserProfile(User* user) {
         if (user) {
@@ -199,6 +209,17 @@ public:
                 cout << "Password changed successfully.\n";
                 break;
             }
+        }
+    }
+
+    void lockUnlockUser(const string& username) {
+        auto it = users.find(username);
+        if (it != users.end()) {
+            it->second.setIsLocked(!it->second.getIsLocked());
+            cout << (it->second.getIsLocked() ? "User has been locked." : "User has been unlocked.") << endl;
+            saveUsers();
+        } else {
+            cout << "User not found!" << endl;
         }
     }
 

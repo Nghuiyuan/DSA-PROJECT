@@ -26,12 +26,7 @@ public:
         : fullname(fname), username(uname), contactNumber(contact), email(e), password(passw), isLocked(locked) {}
 
     void displayUser() const {
-        cout << "\nFullname: " << fullname
-             << "\nUsername: " << username
-             << "\nContact Number: " << contactNumber
-             << "\nEmail: " << email
-             << "\nPassword: " << password
-             << "\nLocked: " << (isLocked ? "Yes" : "No") << endl;
+       	cout<<setw(12)<<left<<fullname<<setw(12)<<left<<username<<setw(20)<<left<<contactNumber<<setw(25)<<left<<email<<setw(20)<<left<<password<<setw(10)<<left<<(isLocked ? "Yes" : "No")<<endl;
     }
 };
 
@@ -717,13 +712,20 @@ void lockUnlockAdmin(const string &adminname) {
             cout << "No users found." << endl;
             return;
         }
-
+        
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+    	cout << setw(12) << left << "Fullname" << setw(12) << left << "Username" << setw(20) << left << "Contact Number" << setw(25) << left << "Email" << setw(20) << left << "Password" << setw(10) << left << "Locked" << endl;
+    	cout << "--------------------------------------------------------------------------------------------------------" << endl;
+    	for (int i = 0; i < userCount; ++i) {
+    	    users[i].displayUser();
+    	}
+    
         int sortOption = 0;
         while (sortOption < 1 || sortOption > 3) {
             cout << "-----------------------------" << endl;
             cout << "Sorting Menu" << endl;
             cout << "-----------------------------" << endl;
-            cout << "Select sorting order: \n1. Ascending (Counting Sort)\n2. Descending (Counting Sort)\n3. Ascending (Pancake Sort)\nEnter your choice: ";
+            cout << "Select sorting order: \n1. Ascending  (Sort Username using Counting Sort)\n2. Descending (Sort Username using Counting Sort)\n3. Ascending  (Sort Fullname using Pancake Sort)\nEnter your choice: ";
             cin >> sortOption;
             if (sortOption < 1 || sortOption > 3) {
                 cout << "Invalid choice. Please select 1, 2, or 3." << endl;
@@ -736,7 +738,9 @@ void lockUnlockAdmin(const string &adminname) {
             pancakeSortUsers(users, userCount);
         }
 
-        cout << "\nList of users:\n";
+        cout<<"--------------------------------------------------------------------------------------------------------"<<endl;
+		cout<<setw(12)<<left<<"Fullname"<<setw(12)<<left<<"Username"<<setw(20)<<left<<"Contact Number"<<setw(25)<<left<<"Email"<<setw(20)<<left<<"Password"<<setw(10)<<left<<"Locked"<<endl;
+       	cout<<"--------------------------------------------------------------------------------------------------------"<<endl;
         for (int i = 0; i < userCount; ++i) {
             users[i].displayUser();
         }
@@ -784,48 +788,145 @@ void lockUnlockAdmin(const string &adminname) {
 	int findMaxIndex(User users[], int n) {
     	int mi = 0;
     	for (int i = 1; i < n; ++i) {
-    	    string username1 = users[i].username;
-    	    string username2 = users[mi].username;
+        	string fullname1 = users[i].fullname;
+        	string fullname2 = users[mi].fullname;
 
-    	    // Convert usernames to lowercase
-    	    transform(username1.begin(), username1.end(), username1.begin(), ::tolower);
-    	    transform(username2.begin(), username2.end(), username2.begin(), ::tolower);
+        	// Convert fullnames to lowercase
+        	transform(fullname1.begin(), fullname1.end(), fullname1.begin(), ::tolower);
+        	transform(fullname2.begin(), fullname2.end(), fullname2.begin(), ::tolower);
 
-    	    if (username1 > username2) {
-    	        mi = i;
-    	    }
+        	if (fullname1 > fullname2) {
+        	    mi = i;
+        	}
     	}
     	return mi;
 	}
 
-    void pancakeSortUsers(User users[], int n) {
-        for (int curr_size = n; curr_size > 1; --curr_size) {
-            int mi = findMaxIndex(users, curr_size);
-            if (mi != curr_size - 1) {
-                flip(users, mi);
-                flip(users, curr_size - 1);
-            }
-        }
-    }
+	void pancakeSortUsers(User users[], int n) {
+    	for (int curr_size = n; curr_size > 1; --curr_size) {
+    	    int mi = findMaxIndex(users, curr_size);
+        	if (mi != curr_size - 1) {
+        	    flip(users, mi);
+        	    flip(users, curr_size - 1);
+        	}
+    	}
+	}
 
-    void searchUser() {
-        string searchUsername;
-        cout << "Enter the username to search: ";
-        getline(cin, searchUsername);
-        
-        bool found = false;
-        for (int i = 0; i < userCount; ++i) {
-            if (users[i].username == searchUsername) {
-                cout << "User found:" << endl;
-                users[i].displayUser();
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            cout << "User not found." << endl;
-        }
-    }
+	void displayUserHeader() {
+    	cout<<"--------------------------------------------------------------------------------------------------------"<<endl;
+		cout<<setw(12)<<left<<"Fullname"<<setw(12)<<left<<"Username"<<setw(20)<<left<<"Contact Number"<<setw(25)<<left<<"Email"<<setw(20)<<left<<"Password"<<setw(10)<<left<<"Locked"<<endl;
+       	cout<<"--------------------------------------------------------------------------------------------------------"<<endl;
+	}
+
+   void searchByUsername() {
+    	string searchUsername;
+    	cout << "Enter the username to search: ";
+    	cin.ignore(); // To clear the newline character from the input buffer
+    	getline(cin, searchUsername);
+    
+    	bool found = false;
+    	for (int i = 0; i < userCount; ++i) {
+    	    if (users[i].username == searchUsername) {
+    	        cout << "User found:" << endl;
+    	        displayUserHeader();
+    	        users[i].displayUser();
+    	        found = true;
+    	        break;
+    	    }
+    	}
+    	if (!found) {
+    	    cout << "User not found." << endl;
+    	}
+	}
+
+	void searchByFullname() {
+    	string searchFullname;
+    	cout << "Enter the full name to search: ";
+    	cin.ignore(); // To clear the newline character from the input buffer
+    	getline(cin, searchFullname);
+    
+    	bool found = false;
+    	for (int i = 0; i < userCount; ++i) {
+    	    if (users[i].fullname == searchFullname) {
+    	        cout << "User found:" << endl;
+    	        displayUserHeader();
+    	        users[i].displayUser();
+    	        found = true;
+    	        break;
+    	    }
+    	}
+    	if (!found) {
+    	    cout << "User not found." << endl;
+    	}
+	}
+
+	void binarySearchByUsername() {
+    	string searchUsername;
+    	cout << "Enter the username to search: ";
+    	cin.ignore(); // To clear the newline character from the input buffer
+    	getline(cin, searchUsername);
+
+    	// Sort users array by username before binary search
+    	sort(users, users + userCount, [](const User &a, const User &b) {
+    	    return a.username < b.username;
+    	});
+
+    	int left = 0;
+    	int right = userCount - 1;
+    	bool found = false;
+
+    	while (left <= right) {
+        	int mid = left + (right - left) / 2;
+        	if (users[mid].username == searchUsername) {
+            	cout << "User found:" << endl;
+            	displayUserHeader();
+            	users[mid].displayUser();
+            	found = true;
+            	break;
+        	}
+        	if (users[mid].username < searchUsername) {
+        	    left = mid + 1;
+        	} else {
+        	    right = mid - 1;
+        	}
+    	}
+
+    	if (!found) {
+    	    cout << "User not found." << endl;
+    	}
+	}
+
+	void searchUser() {
+    	int choice;
+    	
+    	cout << "--------------------------------------------------------------------------------------------------------" << endl;
+    	cout << setw(12) << left << "Fullname" << setw(12) << left << "Username" << setw(20) << left << "Contact Number" << setw(25) << left << "Email" << setw(20) << left << "Password" << setw(10) << left << "Locked" << endl;
+    	cout << "--------------------------------------------------------------------------------------------------------" << endl;
+    	for (int i = 0; i < userCount; ++i) {
+    	    users[i].displayUser();
+    	}
+    	cout << "Select search option:" << endl;
+    	cout << "1. String Search by Full Name" << endl;
+    	cout << "2. String Search by Username" << endl;
+    	cout << "3. Binary Search by Username" << endl;
+    	cout << "Enter your choice: ";
+    	cin >> choice;
+
+    	switch (choice) {
+    	    case 1:
+    	        searchByFullname();
+    	        break;
+    	    case 2:
+    	        searchByUsername();
+    	        break;
+    	    case 3:
+    	        binarySearchByUsername();
+    	        break;
+    	    default:
+    	        cout << "Invalid choice." << endl;
+    	        break;
+    	}
+	}
 
     void run() {
         int choice;
@@ -860,8 +961,8 @@ void lockUnlockAdmin(const string &adminname) {
             cout << "4. Search Admin(Super Admin Only)" << endl; 
             cout << "5. Lock and Unlock Admin (Super Admin only)" << endl;
             cout << "6. Delete Admin (Super Admin only)" << endl;
-            cout << "7. View User List" << endl;
-            cout << "8. Search User" << endl;
+            cout << "7. View and Sort User List" << endl;
+            cout << "8. View and Search User" << endl;
             cout << "9. Lock and Unlock User (Super Admin only)" << endl;
             cout << "10. Exit" << endl;
             cout << "-----------------------------" << endl;

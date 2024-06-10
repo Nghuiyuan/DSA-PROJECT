@@ -5,7 +5,6 @@
 #include <cctype>
 #include <iomanip>
 #include <limits>
-#include <regex>
 
 using namespace std;
 
@@ -43,7 +42,7 @@ private:
     ReservationNode* tail;
     const int reservationYear = 2024;
 
-ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right, bool ascending = true) {
+    ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right, bool ascending = true) {
         if (!left) return right;
         if (!right) return left;
 
@@ -105,8 +104,6 @@ ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right,
         return mergeSortedByName(left, right);
     }
 
-
-
     void loadFoodItems() {
         ifstream inFile("fooddata.txt");
         if (!inFile) {
@@ -143,72 +140,73 @@ ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right,
         currentCategory->foodHead = item;
     }
 
-void searchByName(const string& searchName) {
-    head = mergeSortByName(head);
+    void searchByName(const string& searchName) {
+        head = mergeSortByName(head);
 
-    bool found = false;
-    ReservationNode* tempHead = nullptr;
-    ReservationNode* tempTail = nullptr;
+        bool found = false;
+        ReservationNode* tempHead = nullptr;
+        ReservationNode* tempTail = nullptr;
 
-    for (ReservationNode* current = head; current != nullptr; current = current->next) {
-        if (current->customerName.find(searchName) != string::npos) {
-            if (!tempHead) {
-                tempHead = tempTail = new ReservationNode(*current);
-            } else {
-                tempTail->next = new ReservationNode(*current);
-                tempTail = tempTail->next;
+        for (ReservationNode* current = head; current != nullptr; current = current->next) {
+            if (current->customerName.find(searchName) != string::npos) {
+                ReservationNode* newNode = new ReservationNode(*current);
+                if (!tempHead) {
+                    tempHead = tempTail = newNode;
+                } else {
+                    tempTail->next = newNode;
+                    tempTail = tempTail->next;
+                }
+                found = true;
             }
-            found = true;
+        }
+
+        if (found) {
+            printSReservations(tempHead);
+        } else {
+            cout << "No reservation found under the name containing: " << searchName << endl;
+        }
+
+        // Clean up temporary list
+        while (tempHead) {
+            ReservationNode* temp = tempHead;
+            tempHead = tempHead->next;
+            delete temp;
         }
     }
-    
-    if (found) {
-        printSReservations(tempHead); // Call the updated function
-    } else {
-        cout << "No reservation found under the name containing: " << searchName << endl;
-    }
 
-    // Clean up temporary list
-    while (tempHead) {
-        ReservationNode* temp = tempHead;
-        tempHead = tempHead->next;
-        delete temp;
-    }
-}
+    void searchByDate(const string& searchDate) {
+        head = mergeSort(head, true);
 
-void searchByDate(const string& searchDate) {
-    head = mergeSort(head, true);
+        bool found = false;
+        ReservationNode* tempHead = nullptr;
+        ReservationNode* tempTail = nullptr;
 
-    bool found = false;
-    ReservationNode* tempHead = nullptr;
-    ReservationNode* tempTail = nullptr;
-
-    for (ReservationNode* current = head; current != nullptr; current = current->next) {
-        if (current->reservationDateTime.substr(0, 10) == searchDate) {
-            if (!tempHead) {
-                tempHead = tempTail = new ReservationNode(*current);
-            } else {
-                tempTail->next = new ReservationNode(*current);
-                tempTail = tempTail->next;
+        for (ReservationNode* current = head; current != nullptr; current = current->next) {
+            if (current->reservationDateTime.substr(0, 10) == searchDate) {
+                ReservationNode* newNode = new ReservationNode(*current);
+                if (!tempHead) {
+                    tempHead = tempTail = newNode;
+                } else {
+                    tempTail->next = newNode;
+                    tempTail = tempTail->next;
+                }
+                found = true;
             }
-            found = true;
+        }
+
+        if (found) {
+            printSReservations(tempHead);
+        } else {
+            cout << "No reservations found on the date: " << searchDate << endl;
+        }
+
+        // Clean up temporary list
+        while (tempHead) {
+            ReservationNode* temp = tempHead;
+            tempHead = tempHead->next;
+            delete temp;
         }
     }
-    
-    if (found) {
-        printSReservations(tempHead); // Call the updated function
-    } else {
-        cout << "No reservations found on the date: " << searchDate << endl;
-    }
-
-    // Clean up temporary list
-    while (tempHead) {
-        ReservationNode* temp = tempHead;
-        tempHead = tempHead->next;
-        delete temp;
-    }
-}
-
 
     void displayMainMenu() {
         cout << endl
@@ -560,47 +558,73 @@ void searchByDate(const string& searchDate) {
         }
     }
 
-void printSReservations(ReservationNode* tempHead) const {
-    if (!tempHead) {
-        cout << "No reservations to display." << endl;
-        return;
-    }
-
-    int index = 1;
-    cout << "--------------------------------------------------------------------------------------------------------" << endl;
-    cout << setw(5) << left << "No."
-         << setw(30) << left << "Customer Name"
-         << setw(20) << "Date And Time"
-         << setw(8) << "People"
-         << setw(17) << "Phone Number"
-         << setw(20) << "Total Price" << endl;
-    cout << "--------------------------------------------------------------------------------------------------------" << endl;
-
-    for (ReservationNode* temp = tempHead; temp != nullptr; temp = temp->next, ++index) {
-        cout << setw(5) << left << index
-             << setw(30) << left << temp->customerName
-             << setw(20) << temp->reservationDateTime
-             << setw(8) << temp->people
-             << setw(17) << temp->phone
-             << setw(20) << fixed << setprecision(2) << calculateTotal(temp) << endl;
-    }
-    cout << "--------------------------------------------------------------------------------------------------------" << endl;
-
-    char viewDetails;
-    cout << "Do you want to view the details of any reservation? (y/n): ";
-    cin >> viewDetails;
-    if (tolower(viewDetails) == 'y') {
-        int reservationIndex;
-        cout << "Enter the reservation number to view details: ";
-        cin >> reservationIndex;
-        ReservationNode* reservation = getReservationAtIndex(reservationIndex);
-        if (reservation) {
-            printSingleReservation(reservation);
-        } else {
-            cout << "Invalid reservation number." << endl;
+    void printSReservations(ReservationNode* tempHead) const {
+        if (!tempHead) {
+            cout << "No reservations to display." << endl;
+            return;
         }
+
+        int index = 1;
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+        cout << setw(5) << left << "No."
+             << setw(30) << left << "Customer Name"
+             << setw(20) << "Date And Time"
+             << setw(8) << "People"
+             << setw(17) << "Phone Number"
+             << setw(20) << "Total Price" << endl;
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+
+        for (ReservationNode* temp = tempHead; temp != nullptr; temp = temp->next, ++index) {
+            cout << setw(5) << left << index
+                 << setw(30) << left << temp->customerName
+                 << setw(20) << temp->reservationDateTime
+                 << setw(8) << temp->people
+                 << setw(17) << temp->phone
+                 << setw(20) << fixed << setprecision(2) << calculateTotal(temp) << endl;
+        }
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+
+        char viewDetails;
+        do {
+            cout << "Do you want to view the details of any reservation? (y/n): ";
+            cin >> viewDetails;
+            if (tolower(viewDetails) == 'y') {
+                int reservationIndex;
+                cout << "Enter the reservation number to view details: ";
+                cin >> reservationIndex;
+                ReservationNode* reservation = getReservationAtFilteredIndex(tempHead, reservationIndex);
+                if (reservation) {
+                    printXReservation(reservation);
+                } else {
+                    cout << "Invalid reservation number." << endl;
+                }
+            }
+        } while (tolower(viewDetails) == 'y');
     }
-}
+
+    void printXReservation(const ReservationNode* reservation) const {
+        if (!reservation) {
+            cout << "Invalid reservation reference provided." << endl;
+            return;
+        }
+        cout <<endl
+             << "Name : " << reservation->customerName << endl
+             << "Order Date : " << reservation->reservationDateTime << endl
+             << "Total of People : " << reservation->people << " people" << endl
+             << "Contact Number : " << reservation->phone << endl
+             << "Orders :" << endl;
+        int itemIndex = 1;
+        FoodItem* currentOrder = reservation->foodOrders;
+        double total = 0.0;
+        while (currentOrder) {
+            cout << "   " << itemIndex++ << ". " << currentOrder->name
+                 << ", RM " << fixed << setprecision(2) << currentOrder->price
+                 << " (" << currentOrder->price / currentOrder->price << " qty)" << endl;
+            total += currentOrder->price;
+            currentOrder = currentOrder->next;
+        }
+        cout << "   Total Price: RM " << fixed << setprecision(2) << total << endl << endl;
+    }
 
     void printSingleReservation(const ReservationNode* reservation) const {
         if (!reservation) {
@@ -871,6 +895,15 @@ void printSReservations(ReservationNode* tempHead) const {
         }
     }
 
+    ReservationNode* getReservationAtFilteredIndex(ReservationNode* filteredHead, int index) const {
+        if (index < 1) {
+            return nullptr;
+        }
+        ReservationNode* temp = filteredHead;
+        for (int count = 1; temp != nullptr && count < index; temp = temp->next, ++count);
+        return temp;
+    }
+
 public:
     ReservationList() : categoryHead(nullptr), head(nullptr), tail(nullptr) {
         loadFoodItems();
@@ -917,17 +950,18 @@ public:
                 case 6:
                     head = mergeSort(head, true); // Sort by date ascending
                     cout << "Reservations sorted by date (Ascending).\n";
-                    printReservations();
+                    printSReservations(head);
                     break;
                 case 7:
                     head = mergeSort(head, false); // Sort by date descending
                     cout << "Reservations sorted by date (Descending).\n";
-                    printReservations();
+                    printSReservations(head);
                     break;
                 case 8:
                     head = mergeSortByName(head); // Sort by name ascending
                     cout << "Reservations sorted by name (Ascending).\n";
-                    printReservations();
+                    printSReservations(head);
+                    break;
                 case 9:
                     cout << "Exiting...\n";
                     running = false;
@@ -936,6 +970,12 @@ public:
                     cout << "Invalid selection. Please re-enter your choice.\n";
                     break;
             }
+        }
+    }
+
+    void printSortedReservations() const {
+        for (ReservationNode* temp = head; temp != nullptr; temp = temp->next) {
+            printXReservation(temp);
         }
     }
 
@@ -979,16 +1019,24 @@ public:
             cout << endl << "Total Cost: RM " << fixed << setprecision(2) << calculateTotal(newNode) << endl;
         }
 
-        if (!tail) {
-            head = tail = newNode;
-        } else {
-            tail->next = newNode;
-            tail = newNode;
-        }
-
-        saveReservations();
-        cout << endl << "Reservation added successfully!!!" << endl;
+        cout << "Please confirm your reservation details: " << endl;
         printFinalReservation(newNode);
+        cout << "Do you want to save this reservation? (yes/no): ";
+        cin >> response;
+        toUpperCase(response);
+        if (response == "YES") {
+            if (!tail) {
+                head = tail = newNode;
+            } else {
+                tail->next = newNode;
+                tail = newNode;
+            }
+            saveReservations();
+            cout << endl << "Reservation added successfully!!!" << endl;
+        } else {
+            delete newNode;
+            cout << "Reservation cancelled, returning to main menu." << endl;
+        }
     }
 
     void editReservation() {

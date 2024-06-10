@@ -5,6 +5,7 @@
 #include <cctype>
 #include <iomanip>
 #include <limits>
+#include <regex>
 
 using namespace std;
 
@@ -12,19 +13,13 @@ struct FoodItem {
     string name;
     string category;
     double price;
-    FoodItem* next = nullptr; // For linked list of categorized food items
+    FoodItem* next;
 };
 
-struct FoodCategory {
+struct CategoryNode {
     string category;
-    FoodItem* itemsHead = nullptr; // Head of the linked list of items in this category
-    FoodCategory* next = nullptr; // For linked list of categories
-};
-
-struct FoodOrder {
-    FoodItem* item;
-    int quantity;
-    FoodOrder* next = nullptr; // For linked list of food orders
+    FoodItem* foodHead;
+    CategoryNode* next;
 };
 
 struct ReservationNode {
@@ -32,19 +27,23 @@ struct ReservationNode {
     string reservationDateTime;
     int people;
     string phone;
-    FoodOrder* foodOrders = nullptr; // Linked list of food orders
-    ReservationNode* next = nullptr;
+    FoodItem* foodOrders;
+    ReservationNode* next;
+
+    ReservationNode() : customerName(""), reservationDateTime(""), people(0), phone(""), foodOrders(nullptr), next(nullptr) {}
+    
+    ReservationNode(const string& name, const string& dateTime, int numPeople, const string& phoneNumber)
+        : customerName(name), reservationDateTime(dateTime), people(numPeople), phone(phoneNumber), foodOrders(nullptr), next(nullptr) {}
 };
 
 class ReservationList {
 private:
-    FoodItem* foodItemsHead = nullptr; // Head of the linked list of all food items
-    FoodCategory* categoriesHead = nullptr; // Head of the linked list of food categories
-    ReservationNode* head = nullptr;
-    ReservationNode* tail = nullptr;
+    CategoryNode* categoryHead;
+    ReservationNode* head;
+    ReservationNode* tail;
     const int reservationYear = 2024;
 
-    ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right, bool ascending = true) {
+ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right, bool ascending = true) {
         if (!left) return right;
         if (!right) return left;
 
@@ -106,6 +105,8 @@ private:
         return mergeSortedByName(left, right);
     }
 
+
+
     void loadFoodItems() {
         ifstream inFile("fooddata.txt");
         if (!inFile) {
@@ -115,62 +116,99 @@ private:
         string line;
         while (getline(inFile, line)) {
             stringstream ss(line);
-            FoodItem* item = new FoodItem;
+            FoodItem* item = new FoodItem();
             if (getline(ss, item->name, ',') && getline(ss, item->category, ',') && (ss >> item->price)) {
-                item->next = foodItemsHead;
-                foodItemsHead = item;
-
-                FoodCategory* category = findOrCreateCategory(item->category);
-                item->next = category->itemsHead;
-                category->itemsHead = item;
+                item->next = nullptr;
+                addFoodItem(item);
             }
         }
         inFile.close();
     }
 
-    FoodCategory* findOrCreateCategory(const string& category) {
-        FoodCategory* current = categoriesHead;
-        while (current) {
-            if (current->category == category) {
-                return current;
-            }
-            current = current->next;
+    void addFoodItem(FoodItem* item) {
+        CategoryNode* currentCategory = categoryHead;
+        while (currentCategory && currentCategory->category != item->category) {
+            currentCategory = currentCategory->next;
         }
-        FoodCategory* newCategory = new FoodCategory{category};
-        newCategory->next = categoriesHead;
-        categoriesHead = newCategory;
-        return newCategory;
+
+        if (!currentCategory) {
+            currentCategory = new CategoryNode();
+            currentCategory->category = item->category;
+            currentCategory->foodHead = nullptr;
+            currentCategory->next = categoryHead;
+            categoryHead = currentCategory;
+        }
+
+        item->next = currentCategory->foodHead;
+        currentCategory->foodHead = item;
     }
 
-    void searchByName(const string& searchName) {
-        head = mergeSortByName(head);
+void searchByName(const string& searchName) {
+    head = mergeSortByName(head);
 
-        bool found = false;
-        for (ReservationNode* current = head; current != nullptr; current = current->next) {
-            if (current->customerName.find(searchName) != string::npos) {
-                printSingleReservation(current);
-                found = true;
+    bool found = false;
+    ReservationNode* tempHead = nullptr;
+    ReservationNode* tempTail = nullptr;
+
+    for (ReservationNode* current = head; current != nullptr; current = current->next) {
+        if (current->customerName.find(searchName) != string::npos) {
+            if (!tempHead) {
+                tempHead = tempTail = new ReservationNode(*current);
+            } else {
+                tempTail->next = new ReservationNode(*current);
+                tempTail = tempTail->next;
             }
-        }
-        if (!found) {
-            cout << "No reservation found under the name containing: " << searchName << endl;
+            found = true;
         }
     }
+    
+    if (found) {
+        printSReservations(tempHead); // Call the updated function
+    } else {
+        cout << "No reservation found under the name containing: " << searchName << endl;
+    }
 
-    void searchByDate(const string& searchDate) {
-        head = mergeSort(head, true);
+    // Clean up temporary list
+    while (tempHead) {
+        ReservationNode* temp = tempHead;
+        tempHead = tempHead->next;
+        delete temp;
+    }
+}
 
-        bool found = false;
-        for (ReservationNode* current = head; current != nullptr; current = current->next) {
-            if (current->reservationDateTime.substr(0, 10) == searchDate) {
-                printSingleReservation(current);
-                found = true;
+void searchByDate(const string& searchDate) {
+    head = mergeSort(head, true);
+
+    bool found = false;
+    ReservationNode* tempHead = nullptr;
+    ReservationNode* tempTail = nullptr;
+
+    for (ReservationNode* current = head; current != nullptr; current = current->next) {
+        if (current->reservationDateTime.substr(0, 10) == searchDate) {
+            if (!tempHead) {
+                tempHead = tempTail = new ReservationNode(*current);
+            } else {
+                tempTail->next = new ReservationNode(*current);
+                tempTail = tempTail->next;
             }
-        }
-        if (!found) {
-            cout << "No reservations found on the date: " << searchDate << endl;
+            found = true;
         }
     }
+    
+    if (found) {
+        printSReservations(tempHead); // Call the updated function
+    } else {
+        cout << "No reservations found on the date: " << searchDate << endl;
+    }
+
+    // Clean up temporary list
+    while (tempHead) {
+        ReservationNode* temp = tempHead;
+        tempHead = tempHead->next;
+        delete temp;
+    }
+}
+
 
     void displayMainMenu() {
         cout << endl
@@ -191,10 +229,12 @@ private:
 
     void displayCategories() const {
         int i = 1;
-        for (FoodCategory* category = categoriesHead; category; category = category->next) {
-            cout << i++ << ". " << category->category << endl;
+        CategoryNode* currentCategory = categoryHead;
+        while (currentCategory) {
+            cout << i++ << ". " << currentCategory->category << endl;
+            currentCategory = currentCategory->next;
         }
-        cout << i << ". Main Menu" << endl; 
+        cout << i << ". Main Menu" << endl;
     }
 
     void toUpperCase(string& str) {
@@ -216,44 +256,62 @@ private:
                 continue;
             }
             if (choice == getCategoryCount() + 1) {
-                break;
+                break;  // Exit on 'Main Menu'
             }
 
-            FoodCategory* category = getCategoryAtIndex(choice - 1);
+            CategoryNode* selectedCategory = getCategoryAt(choice - 1);
+            if (!selectedCategory) {
+                cout << "Invalid selection, returning to categories.\n";
+                continue;
+            }
 
-            cout << endl << "Menu for " << category->category << ":\n";
+            cout << endl << "Menu for " << selectedCategory->category << ":\n";
             int j = 1;
-            for (FoodItem* item = category->itemsHead; item; item = item->next) {
-                cout << j++ << ". " << item->name << " - RM" << fixed << setprecision(2) << item->price << endl;
+            FoodItem* currentItem = selectedCategory->foodHead;
+            while (currentItem) {
+                cout << j++ << ". " << currentItem->name << " - RM" << fixed << setprecision(2) << currentItem->price << endl;
+                currentItem = currentItem->next;
             }
 
             cout << endl << "Which item do you want (0 to cancel): ";
             int itemChoice;
             cin >> itemChoice;
-            if (itemChoice < 1 || itemChoice > getItemCount(category)) {
+            if (itemChoice < 1 || itemChoice > getFoodCount(selectedCategory)) {
                 cout << "Invalid selection, returning to categories.\n";
                 continue;
             }
 
-            FoodItem* selectedItem = getItemAtIndex(category, itemChoice - 1);
-            cout << endl << "How many quantities of " << selectedItem->name << "?: ";
+            currentItem = getFoodAt(selectedCategory, itemChoice - 1);
+            if (!currentItem) {
+                cout << "Invalid selection, returning to categories.\n";
+                continue;
+            }
+
+            cout << endl << "How many quantities of " << currentItem->name << "?: ";
             int quantity;
             cin >> quantity;
             if (quantity > 0) {
-                FoodOrder* order = new FoodOrder{selectedItem, quantity};
-                order->next = reservation->foodOrders;
-                reservation->foodOrders = order;
-                cout << quantity << " of " << selectedItem->name << " added. Add more or return to Main Menu.\n";
+                addFoodOrder(reservation, currentItem, quantity);
+                cout << quantity << " of " << currentItem->name << " added. Add more or return to Main Menu.\n";
             } else {
                 cout << "Invalid quantity, returning to categories.\n";
             }
         } while (true);
     }
 
+    void addFoodOrder(ReservationNode* reservation, FoodItem* item, int quantity) {
+        FoodItem* newOrder = new FoodItem(*item);
+        newOrder->next = reservation->foodOrders;
+        reservation->foodOrders = newOrder;
+        newOrder->price = item->price * quantity;
+    }
+
     double calculateTotal(const ReservationNode* reservation) const {
         double total = 0.0;
-        for (FoodOrder* order = reservation->foodOrders; order; order = order->next) {
-            total += order->item->price * order->quantity;
+        FoodItem* currentItem = reservation->foodOrders;
+        while (currentItem) {
+            total += currentItem->price;
+            currentItem = currentItem->next;
         }
         return total;
     }
@@ -277,44 +335,25 @@ private:
         string line;
 
         while (getline(inFile, line)) {
-            cout << "Processing line: " << line << endl;
             stringstream ss(line);
-            string customerData, itemDetails;
-            getline(ss, customerData, ';');
-            stringstream customerStream(customerData);
-            string part;
+            string part, itemDetails;
             ReservationNode* newNode = new ReservationNode();
-            newNode->foodOrders = nullptr;
 
-            getline(customerStream, newNode->customerName, ',');
-            getline(customerStream, newNode->reservationDateTime, ',');
-            getline(customerStream, part, ',');
+            getline(ss, newNode->customerName, ',');
+            getline(ss, newNode->reservationDateTime, ',');
+            getline(ss, part, ',');
             newNode->people = stoi(part);
-            getline(customerStream, newNode->phone, ',');
+            getline(ss, newNode->phone, ';');
 
-            FoodOrder* lastOrder = nullptr;
             while (getline(ss, itemDetails, ';')) {
-                if (itemDetails.empty()) continue;
-                cout << "Item details: " << itemDetails << endl;
                 stringstream itemStream(itemDetails);
                 string name, price, quantity;
                 getline(itemStream, name, ':');
                 getline(itemStream, price, ':');
                 getline(itemStream, quantity);
 
-                FoodItem* item = findFoodItemByName(name);
-                if (item) {
-                    FoodOrder* order = new FoodOrder{item, stoi(quantity)};
-                    if (!newNode->foodOrders) {
-                        newNode->foodOrders = order;
-                    } else {
-                        lastOrder->next = order;
-                    }
-                    lastOrder = order;
-                    cout << "Added order: " << name << ", Quantity: " << quantity << endl;
-                } else {
-                    cout << "Item not found: " << name << endl;
-                }
+                FoodItem* item = new FoodItem{name, "", stod(price), nullptr};
+                addFoodOrder(newNode, item, stoi(quantity));
             }
 
             if (!head) {
@@ -325,15 +364,6 @@ private:
             }
         }
         inFile.close();
-    }
-
-    FoodItem* findFoodItemByName(const string& name) {
-        for (FoodItem* item = foodItemsHead; item; item = item->next) {
-            if (item->name == name) {
-                return item;
-            }
-        }
-        return nullptr;
     }
 
     void saveReservations() {
@@ -347,8 +377,10 @@ private:
                     << temp->reservationDateTime << ","
                     << temp->people << ","
                     << temp->phone;
-            for (FoodOrder* order = temp->foodOrders; order; order = order->next) {
-                outFile << ";" << order->item->name << ":" << order->item->price << ":" << order->quantity;
+            FoodItem* currentOrder = temp->foodOrders;
+            while (currentOrder) {
+                outFile << ";" << currentOrder->name << ":" << currentOrder->price / currentOrder->price << ":" << currentOrder->price;
+                currentOrder = currentOrder->next;
             }
             outFile << endl;
         }
@@ -373,37 +405,14 @@ private:
         string filename;
         string monthn;
         switch (month) {
-            case 6:
-                filename = "JUNE.txt";
-                monthn = "JUNE";
-                break;
-            case 7:
-                filename = "JULY.txt";
-                monthn = "JULY";
-                break;
-            case 8:
-                filename = "AUGUST.txt";
-                monthn = "AUGUST";
-                break;
-            case 9:
-                filename = "SEP.txt";
-                monthn = "SEPTEMBER";
-                break;
-            case 10:
-                filename = "OCT.txt";
-                monthn = "OCTOBER";
-                break;
-            case 11:
-                filename = "NOV.txt";
-                monthn = "NOVEMBER";
-                break;
-            case 12:
-                filename = "DEC.txt";
-                monthn = "DECEMBER";
-                break;
-            default:
-                cerr << "Invalid month provided.";
-                return "01";
+            case 6: filename = "JUNE.txt"; monthn = "JUNE"; break;
+            case 7: filename = "JULY.txt"; monthn = "JULY"; break;
+            case 8: filename = "AUGUST.txt"; monthn = "AUGUST"; break;
+            case 9: filename = "SEP.txt"; monthn = "SEPTEMBER"; break;
+            case 10: filename = "OCT.txt"; monthn = "OCTOBER"; break;
+            case 11: filename = "NOV.txt"; monthn = "NOVEMBER"; break;
+            case 12: filename = "DEC.txt"; monthn = "DECEMBER"; break;
+            default: cerr << "Invalid month provided."; return "01";
         }
 
         ifstream file(filename);
@@ -412,16 +421,12 @@ private:
             return "01";
         }
 
-        cout << endl << "Available days from " << monthn << " : " << endl;
-        cout << endl;
-        string availableDays[31];
-        int count = 0;
+        cout << endl << "Available days from " << monthn << " : " << endl << endl;
         string line, day;
         while (getline(file, line)) {
             stringstream ss(line);
             while (ss >> day) {
-                day = day.length() < 2 ? "0" + day : day; // Format each day as two-digit string if necessary
-                availableDays[count++] = day;
+                day = day.length() < 2 ? "0" + day : day;
                 cout << day << " ";
             }
             cout << endl;
@@ -435,27 +440,49 @@ private:
             cout << "Select a day (DD): ";
             cin >> selectedDay;
             if (selectedDay.length() < 2) {
-                selectedDay = "0" + selectedDay; // Ensure two-digit format for comparison
+                selectedDay = "0" + selectedDay;
             }
-            for (int i = 0; i < count; ++i) {
-                if (availableDays[i] == selectedDay) {
-                    isValidDay = true;
-                    break;
-                }
-            }
-            if (!isValidDay) {
-                cout << "Invalid day selected. Please choose a day listed in the file.\n";
-            }
+            isValidDay = validateDayInFile(month, selectedDay);
         } while (!isValidDay);
 
-        string formattedMonth = month < 10 ? "0" + to_string(month) : to_string(month); // Ensure the month is two digits
+        string formattedMonth = month < 10 ? "0" + to_string(month) : to_string(month);
         return formattedMonth + "-" + selectedDay;
+    }
+
+    bool validateDayInFile(int month, const string& day) {
+        string filename;
+        switch (month) {
+            case 6: filename = "JUNE.txt"; break;
+            case 7: filename = "JULY.txt"; break;
+            case 8: filename = "AUGUST.txt"; break;
+            case 9: filename = "SEP.txt"; break;
+            case 10: filename = "OCT.txt"; break;
+            case 11: filename = "NOV.txt"; break;
+            case 12: filename = "DEC.txt"; break;
+            default: return false;
+        }
+
+        ifstream file(filename);
+        if (!file) {
+            cerr << "Failed to open day file: " << filename << endl;
+            return false;
+        }
+
+        string line, availableDay;
+        while (getline(file, line)) {
+            stringstream ss(line);
+            while (ss >> availableDay) {
+                if (availableDay == day) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     string getTimeFromUser(const string& prompt) {
         int choice;
         cout << prompt << endl;
-        // Display time slots in a consistent format
         for (int i = 0; i < 20; ++i) {
             int hour = 10 + i / 2;
             string minute = (i % 2 == 0) ? "00" : "30";
@@ -466,8 +493,8 @@ private:
         cout << "Select a time slot (1-20): ";
 
         while (!(cin >> choice) || choice < 1 || choice > 20) {
-            cin.clear(); // Clear error flag
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Discard incorrect input
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cout << "Invalid selection. Please enter a valid slot number between 1 and 20: ";
         }
 
@@ -497,10 +524,7 @@ private:
         int month = getMonthFromUser("Enter reservation month (06-12): ");
         string newDate = selectDayFromFile(month);
         if (reservation->reservationDateTime.length() >= 16) {
-            // Extract HH:MM AM/PM from the current reservation datetime
-            string currentTime = reservation->reservationDateTime.substr(11); // Get everything after the date part (includes time and AM/PM)
-
-            // Construct the new datetime string with the new date and the extracted time
+            string currentTime = reservation->reservationDateTime.substr(11);
             reservation->reservationDateTime = to_string(reservationYear) + "-" + newDate + " " + currentTime;
         } else {
             cout << "Error: Current reservation date-time format is invalid." << endl;
@@ -508,15 +532,10 @@ private:
     }
 
     void editTime(ReservationNode* reservation) {
-        // Call the same function used in adding a reservation to get the new time
         string newTime = getTimeFromUser("Choose new reservation time:");
 
-        // Assume the reservation date-time string is formatted correctly as "YYYY-MM-DD HH:MM"
         if (reservation->reservationDateTime.length() >= 16) {
-            // Extract just the date part (first 10 characters represent the date "YYYY-MM-DD")
             string currentDate = reservation->reservationDateTime.substr(0, 10);
-
-            // Combine the extracted date with the new time to update the reservation
             reservation->reservationDateTime = currentDate + " " + newTime;
         } else {
             cout << "Error: Current reservation date-time format is invalid." << endl;
@@ -528,7 +547,6 @@ private:
         string newPhone;
         while (!validInput) {
             cout << "Enter new phone number: ";
-            // Ignore input buffer only if it's necessary. Check if there is something to ignore.
             if (cin.peek() == '\n') {
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
             }
@@ -542,69 +560,45 @@ private:
         }
     }
 
-void printSReservation(const ReservationNode* head) const {
-    if (!head) {
-        cout << "No reservations found.\n";
+void printSReservations(ReservationNode* tempHead) const {
+    if (!tempHead) {
+        cout << "No reservations to display." << endl;
         return;
     }
 
-    cout << "Available Reservations:" << endl;
-    cout << "----------------------------------------------------------------------------------------------------" << endl;
-    cout << setfill(' ') << setw(5) << left << "Index"
-         << setw(30) << "Customer Name"
-         << setw(20) << "Date and Time"
-         << setw(8) << "People"
-         << setw(15) << "Phone Number"
-         << setw(15) << left << "Total Price" << endl;
-    cout << "----------------------------------------------------------------------------------------------------" << endl;
-
     int index = 1;
-    const ReservationNode* current = head;
-    while (current) {
-        double totalPrice = calculateTotal(current);  // Calculate the total price for each reservation
-        cout << setfill(' ') << setw(5) << left << index++
-             << setw(30) << current->customerName
-             << setw(20) << current->reservationDateTime
-             << setw(8) << current->people
-             << setw(15) << current->phone
-             << "RM " << setw(14) << right << fixed << setprecision(2) << totalPrice << endl;
+    cout << "--------------------------------------------------------------------------------------------------------" << endl;
+    cout << setw(5) << left << "No."
+         << setw(30) << left << "Customer Name"
+         << setw(20) << "Date And Time"
+         << setw(8) << "People"
+         << setw(17) << "Phone Number"
+         << setw(20) << "Total Price" << endl;
+    cout << "--------------------------------------------------------------------------------------------------------" << endl;
 
-        current = current->next;
+    for (ReservationNode* temp = tempHead; temp != nullptr; temp = temp->next, ++index) {
+        cout << setw(5) << left << index
+             << setw(30) << left << temp->customerName
+             << setw(20) << temp->reservationDateTime
+             << setw(8) << temp->people
+             << setw(17) << temp->phone
+             << setw(20) << fixed << setprecision(2) << calculateTotal(temp) << endl;
     }
-    selectAndPrintReservationDetails(head);
-}
+    cout << "--------------------------------------------------------------------------------------------------------" << endl;
 
-
-
-void viewReservationDetails(const ReservationNode* reservation) const {
-    int itemIndex = 1;
-    double total = 0.0;
-    cout << "Order Details for " << reservation->customerName << ":" << endl;
-        for (FoodOrder* order = reservation->foodOrders; order; order = order->next) {
-            cout << "   " << itemIndex++ << ". " << order->item->name
-                << ", RM " << fixed << setprecision(2) << order->item->price
-                << " (" << order->quantity << " qty)" << endl;
-            total += order->item->price * order->quantity;
+    char viewDetails;
+    cout << "Do you want to view the details of any reservation? (y/n): ";
+    cin >> viewDetails;
+    if (tolower(viewDetails) == 'y') {
+        int reservationIndex;
+        cout << "Enter the reservation number to view details: ";
+        cin >> reservationIndex;
+        ReservationNode* reservation = getReservationAtIndex(reservationIndex);
+        if (reservation) {
+            printSingleReservation(reservation);
+        } else {
+            cout << "Invalid reservation number." << endl;
         }
-    cout << "   Total Price: RM " << fixed << setprecision(2) << total << endl << endl;
-}
-
-void selectAndPrintReservationDetails(const ReservationNode* head) const {
-
-    cout << "Enter the index of the reservation you want to view details for: ";
-    int choice;
-    cin >> choice;
-
-    const ReservationNode* current = head;
-
-    for (int i = 1; i < choice && current != nullptr; i++) {
-        current = current->next;
-    }
-
-    if (current == nullptr) {
-        cout << "Invalid index." << endl;
-    } else {
-        viewReservationDetails(current);
     }
 }
 
@@ -614,18 +608,20 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
             return;
         }
         cout << endl << "Updated Reservation Details :" << endl
-            << "Name : " << reservation->customerName << endl
-            << "Order Date : " << reservation->reservationDateTime << endl
-            << "Total of People : " << reservation->people << " people" << endl
-            << "Contact Number : " << reservation->phone << endl
-            << "Orders :" << endl;
+             << "Name : " << reservation->customerName << endl
+             << "Order Date : " << reservation->reservationDateTime << endl
+             << "Total of People : " << reservation->people << " people" << endl
+             << "Contact Number : " << reservation->phone << endl
+             << "Orders :" << endl;
         int itemIndex = 1;
+        FoodItem* currentOrder = reservation->foodOrders;
         double total = 0.0;
-        for (FoodOrder* order = reservation->foodOrders; order; order = order->next) {
-            cout << "   " << itemIndex++ << ". " << order->item->name
-                << ", RM " << fixed << setprecision(2) << order->item->price
-                << " (" << order->quantity << " qty)" << endl;
-            total += order->item->price * order->quantity;
+        while (currentOrder) {
+            cout << "   " << itemIndex++ << ". " << currentOrder->name
+                 << ", RM " << fixed << setprecision(2) << currentOrder->price
+                 << " (" << currentOrder->price / currentOrder->price << " qty)" << endl;
+            total += currentOrder->price;
+            currentOrder = currentOrder->next;
         }
         cout << "   Total Price: RM " << fixed << setprecision(2) << total << endl << endl;
     }
@@ -636,18 +632,20 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
             return;
         }
         cout << endl << "Final Reservation Details :" << endl
-            << "Name : " << reservation->customerName << endl
-            << "Order Date : " << reservation->reservationDateTime << endl
-            << "Total of People : " << reservation->people << " people" << endl
-            << "Contact Number : " << reservation->phone << endl
-            << "Orders :" << endl;
+             << "Name : " << reservation->customerName << endl
+             << "Order Date : " << reservation->reservationDateTime << endl
+             << "Total of People : " << reservation->people << " people" << endl
+             << "Contact Number : " << reservation->phone << endl
+             << "Orders :" << endl;
         int itemIndex = 1;
+        FoodItem* currentOrder = reservation->foodOrders;
         double total = 0.0;
-        for (FoodOrder* order = reservation->foodOrders; order; order = order->next) {
-            cout << "   " << itemIndex++ << ". " << order->item->name
-                << ", RM " << fixed << setprecision(2) << order->item->price
-                << " (" << order->quantity << " qty)" << endl;
-            total += order->item->price * order->quantity;
+        while (currentOrder) {
+            cout << "   " << itemIndex++ << ". " << currentOrder->name
+                 << ", RM " << fixed << setprecision(2) << currentOrder->price
+                 << " (" << currentOrder->price / currentOrder->price << " qty)" << endl;
+            total += currentOrder->price;
+            currentOrder = currentOrder->next;
         }
         cout << "   Total Price: RM " << fixed << setprecision(2) << total << endl << endl;
     }
@@ -655,13 +653,16 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
     void editFood(ReservationNode* reservation) {
         cout << endl << "Current food orders:\n";
         int oi = 1;
-        for (FoodOrder* order = reservation->foodOrders; order; order = order->next) {
-            cout << oi++ << ". " << order->item->name << " - Qty: " << order->quantity << ", Price per item: RM" << fixed << setprecision(2) << order->item->price << endl;
+        FoodItem* currentOrder = reservation->foodOrders;
+        while (currentOrder) {
+            cout << oi++ << ". " << currentOrder->name << " - Qty: " << currentOrder->price / currentOrder->price
+                 << ", Price per item: RM" << fixed << setprecision(2) << currentOrder->price << endl;
+            currentOrder = currentOrder->next;
         }
 
         cout << endl << "Select the food order to edit (0 to cancel): ";
         int foodIndex;
-        while (!(cin >> foodIndex) || foodIndex < 0 || foodIndex > getOrderCount(reservation->foodOrders)) {
+        while (!(cin >> foodIndex) || foodIndex < 0 || foodIndex > getFoodOrderCount(reservation)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             if (foodIndex == 0) return;
@@ -670,8 +671,14 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
 
         if (foodIndex == 0) return;
 
-        FoodOrder* selectedOrder = getOrderAtIndex(reservation->foodOrders, foodIndex - 1);
-        cout << endl << "Selected: " << selectedOrder->item->name << " - Qty: " << selectedOrder->quantity << ", Price per item: RM" << fixed << setprecision(2) << selectedOrder->item->price << endl;
+        FoodItem* selectedOrder = getFoodOrderAt(reservation, foodIndex - 1);
+        if (!selectedOrder) {
+            cout << "Invalid selection.\n";
+            return;
+        }
+
+        cout << endl << "Selected: " << selectedOrder->name << " - Qty: " << selectedOrder->price / selectedOrder->price
+             << ", Price per item: RM" << fixed << setprecision(2) << selectedOrder->price << endl;
         cout << endl << "Options: \n1. Change Quantity\n2. Replace Item\n3. Remove Item\nEnter your choice: ";
         int choice;
         while (!(cin >> choice) || choice < 1 || choice > 3) {
@@ -694,16 +701,15 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
                     cout << "Invalid quantity. Please enter a valid quantity or 0 to cancel: ";
                 }
                 if (newQty > 0) {
-                    selectedOrder->quantity = newQty;
+                    selectedOrder->price = selectedOrder->price / selectedOrder->price * newQty;
                 } else {
-                    removeOrderFromList(&reservation->foodOrders, selectedOrder);
-                    delete selectedOrder;
-                    cout << "Order removed.\n";
+                    removeFoodOrder(reservation, foodIndex - 1);
+                    cout << "Order edit cancelled.\n";
                 }
                 break;
             }
             case 2: {
-                cout << endl << "Select a new food item to replace: ";
+                cout << endl << "Select a new food item to replace:\n";
                 displayCategories();
                 int categoryChoice;
                 cout << "Select category: ";
@@ -713,19 +719,34 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
                     cout << "Invalid category. Please select a valid category: ";
                 }
 
-                FoodCategory* category = getCategoryAtIndex(categoryChoice - 1);
-                int j = 1, itemChoice;
-                cout << "Food : " << endl;
-                for (FoodItem* item = category->itemsHead; item; item = item->next) {
-                    cout << j++ << ". " << item->name << " - RM" << fixed << setprecision(2) << item->price << endl;
+                CategoryNode* selectedCategory = getCategoryAt(categoryChoice - 1);
+                if (!selectedCategory) {
+                    cout << "Invalid category selection.\n";
+                    return;
                 }
+
+                cout << endl << "Food:\n";
+                int j = 1;
+                FoodItem* currentItem = selectedCategory->foodHead;
+                while (currentItem) {
+                    cout << j++ << ". " << currentItem->name << " - RM" << fixed << setprecision(2) << currentItem->price << endl;
+                    currentItem = currentItem->next;
+                }
+
                 cout << endl << "Select food item to replace with: ";
-                while (!(cin >> itemChoice) || itemChoice < 1 || itemChoice > getItemCount(category)) {
+                int itemChoice;
+                while (!(cin >> itemChoice) || itemChoice < 1 || itemChoice > getFoodCount(selectedCategory)) {
                     cin.clear();
                     cin.ignore(numeric_limits<streamsize>::max(), '\n');
                     cout << "Invalid item. Please select a valid food item: ";
                 }
-                FoodItem* newItem = getItemAtIndex(category, itemChoice - 1);
+
+                currentItem = getFoodAt(selectedCategory, itemChoice - 1);
+                if (!currentItem) {
+                    cout << "Invalid food item selection.\n";
+                    return;
+                }
+
                 int newQty;
                 cout << endl << "Enter quantity for the new item: ";
                 while (!(cin >> newQty) || newQty < 1) {
@@ -733,32 +754,16 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
                     cin.ignore(numeric_limits<streamsize>::max(), '\n');
                     cout << "Invalid quantity. Please enter a positive number: ";
                 }
-                selectedOrder->item = newItem;
-                selectedOrder->quantity = newQty;
+                replaceFoodOrder(reservation, foodIndex - 1, currentItem, newQty);
                 break;
             }
             case 3:
-                removeOrderFromList(&reservation->foodOrders, selectedOrder);
-                delete selectedOrder;
+                removeFoodOrder(reservation, foodIndex - 1);
                 cout << "Item removed from the order.\n";
                 break;
         }
         saveReservations();
-        cout << "Order edited successfully!\n";
-    }
-
-    void removeOrderFromList(FoodOrder** head, FoodOrder* target) {
-        if (*head == target) {
-            *head = (*head)->next;
-            return;
-        }
-        FoodOrder* current = *head;
-        while (current && current->next != target) {
-            current = current->next;
-        }
-        if (current) {
-            current->next = target->next;
-        }
+        cout << "Order updated successfully!\n";
     }
 
     bool isValidPhone(const string& phone) const {
@@ -769,65 +774,115 @@ void selectAndPrintReservationDetails(const ReservationNode* head) const {
         return (people > 0 && people <= 15);
     }
 
+    bool isValidTime(int hour, int minute) const {
+        return (hour >= 10 && hour <= 20 && minute >= 0 && minute < 60);
+    }
+
     int getCategoryCount() const {
         int count = 0;
-        for (FoodCategory* category = categoriesHead; category; category = category->next) {
+        CategoryNode* currentCategory = categoryHead;
+        while (currentCategory) {
             ++count;
+            currentCategory = currentCategory->next;
         }
         return count;
     }
 
-    FoodCategory* getCategoryAtIndex(int index) const {
-        FoodCategory* category = categoriesHead;
-        for (int i = 0; i < index; ++i) {
-            category = category->next;
-        }
-        return category;
-    }
-
-    int getItemCount(FoodCategory* category) const {
+    CategoryNode* getCategoryAt(int index) const {
         int count = 0;
-        for (FoodItem* item = category->itemsHead; item; item = item->next) {
+        CategoryNode* currentCategory = categoryHead;
+        while (currentCategory && count < index) {
             ++count;
+            currentCategory = currentCategory->next;
         }
-        return count;
+        return currentCategory;
     }
 
-    FoodItem* getItemAtIndex(FoodCategory* category, int index) const {
-        FoodItem* item = category->itemsHead;
-        for (int i = 0; i < index; ++i) {
-            item = item->next;
-        }
-        return item;
-    }
-
-    int getOrderCount(FoodOrder* orders) const {
+    int getFoodCount(CategoryNode* category) const {
         int count = 0;
-        for (FoodOrder* order = orders; order; order = order->next) {
+        FoodItem* currentItem = category->foodHead;
+        while (currentItem) {
             ++count;
+            currentItem = currentItem->next;
         }
         return count;
     }
 
-    FoodOrder* getOrderAtIndex(FoodOrder* orders, int index) const {
-        FoodOrder* order = orders;
-        for (int i = 0; i < index; ++i) {
-            order = order->next;
+    FoodItem* getFoodAt(CategoryNode* category, int index) const {
+        int count = 0;
+        FoodItem* currentItem = category->foodHead;
+        while (currentItem && count < index) {
+            ++count;
+            currentItem = currentItem->next;
         }
-        return order;
+        return currentItem;
+    }
+
+    int getFoodOrderCount(ReservationNode* reservation) const {
+        int count = 0;
+        FoodItem* currentOrder = reservation->foodOrders;
+        while (currentOrder) {
+            ++count;
+            currentOrder = currentOrder->next;
+        }
+        return count;
+    }
+
+    FoodItem* getFoodOrderAt(ReservationNode* reservation, int index) const {
+        int count = 0;
+        FoodItem* currentOrder = reservation->foodOrders;
+        while (currentOrder && count < index) {
+            ++count;
+            currentOrder = currentOrder->next;
+        }
+        return currentOrder;
+    }
+
+    void removeFoodOrder(ReservationNode* reservation, int index) {
+        FoodItem* currentOrder = reservation->foodOrders;
+        FoodItem* prevOrder = nullptr;
+        int count = 0;
+        while (currentOrder && count < index) {
+            ++count;
+            prevOrder = currentOrder;
+            currentOrder = currentOrder->next;
+        }
+        if (currentOrder) {
+            if (prevOrder) {
+                prevOrder->next = currentOrder->next;
+            } else {
+                reservation->foodOrders = currentOrder->next;
+            }
+            delete currentOrder;
+        }
+    }
+
+    void replaceFoodOrder(ReservationNode* reservation, int index, FoodItem* newItem, int newQty) {
+        FoodItem* currentOrder = reservation->foodOrders;
+        int count = 0;
+        while (currentOrder && count < index) {
+            ++count;
+            currentOrder = currentOrder->next;
+        }
+        if (currentOrder) {
+            currentOrder->name = newItem->name;
+            currentOrder->category = newItem->category;
+            currentOrder->price = newItem->price * newQty;
+        }
     }
 
 public:
-    ReservationList() {
+    ReservationList() : categoryHead(nullptr), head(nullptr), tail(nullptr) {
         loadFoodItems();
     }
+
     ~ReservationList() {
         clearReservations();
     }
 
     void mainMenu() {
-        string input;        
-        loadReservations(); // Load reservations at the start
+        string input;
+        loadReservations();
         bool running = true;
         while (running) {
             displayMainMenu();
@@ -949,13 +1004,13 @@ public:
         bool continueEditing = true;
         while (continueEditing) {
             cout << endl << "Select what to edit:\n"
-                << "1. Number of People\n"
-                << "2. Date\n"
-                << "3. Time\n"
-                << "4. Phone Number\n"
-                << "5. Food Orders\n"
-                << "6. Finish Editing (return to main menu)\n"
-                << "Enter your choice: ";
+                 << "1. Number of People\n"
+                 << "2. Date\n"
+                 << "3. Time\n"
+                 << "4. Phone Number\n"
+                 << "5. Food Orders\n"
+                 << "6. Finish Editing (return to main menu)\n"
+                 << "Enter your choice: ";
             int choice;
             cin >> choice;
 
@@ -986,8 +1041,8 @@ public:
             }
 
             if (choice >= 1 && choice <= 5) {
-                saveReservations(); // Save changes after each valid operation
-                printSingleReservation(reservation); // Display updated reservation
+                saveReservations();
+                printSingleReservation(reservation);
             }
         }
     }
@@ -996,14 +1051,16 @@ public:
         int index = 1;
         for (ReservationNode* temp = head; temp != nullptr; temp = temp->next, ++index) {
             cout << endl << index << ". Name: " << temp->customerName << endl
-                << "   Order Date: " << temp->reservationDateTime << endl
-                << "   Total of People: " << temp->people << " people" << endl
-                << "   Contact Number: " << temp->phone << endl
-                << "   Orders: " << endl;
+                 << "   Order Date: " << temp->reservationDateTime << endl
+                 << "   Total of People: " << temp->people << " people" << endl
+                 << "   Contact Number: " << temp->phone << endl
+                 << "   Orders: " << endl;
             int itemIndex = 1;
-            for (FoodOrder* order = temp->foodOrders; order; order = order->next) {
-                cout << "   " << itemIndex++ << ". " << order->item->name << ", RM " << fixed << setprecision(2) << order->item->price
-                    << " (" << order->quantity << " qty)" << endl;
+            FoodItem* currentOrder = temp->foodOrders;
+            while (currentOrder) {
+                cout << "   " << itemIndex++ << ". " << currentOrder->name << ", RM " << fixed << setprecision(2) << currentOrder->price
+                     << " (" << currentOrder->price / currentOrder->price << " qty)" << endl;
+                currentOrder = currentOrder->next;
             }
             double total = calculateTotal(temp);
             cout << "   Total Price: RM " << fixed << setprecision(2) << total << endl;

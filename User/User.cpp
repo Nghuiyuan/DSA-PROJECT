@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <unordered_map>
 #include <fstream>
 #include <cctype>
 #include <limits>
@@ -57,14 +56,23 @@ private:
     bool isLocked;
 };
 
+class Node {
+public:
+    User user;
+    Node* next;
+
+    Node(const User& user) : user(user), next(nullptr) {}
+};
+
 class UserManager {
 public:
-    UserManager() {
+    UserManager() : head(nullptr) {
         loadUsers();
     }
 
     ~UserManager() {
         saveUsers();
+        clearList();
     }
 
     void registerUser() {
@@ -73,6 +81,11 @@ public:
             cout << "\nPlease enter your information\n";
             cout << "Full name: ";
             getline(cin, fullName);
+            if (!isAlpha(fullName)) {
+                cout << "Full name can only contain letters. Please try again.\n";
+                continue;
+            }
+
             cout << "Username: ";
             getline(cin, username);
 
@@ -100,14 +113,14 @@ public:
                 continue;
             }
 
-            if (users.find(username) != users.end()) {
+            if (findUserByUsername(username) != nullptr) {
                 cout << "Username already exists. Please try again.\n";
                 continue;
             }
 
-            users[username] = User(fullName, username, contactNumber, email, password);
+            addUser(User(fullName, username, contactNumber, email, password));
             cout << "Registration successful. Logging in...\n";
-            loggedInUser = &users[username];
+            loggedInUser = findUserByUsername(username);
             break;
         }
     }
@@ -120,21 +133,20 @@ public:
         cout << "Password: ";
         getline(cin, password);
 
-        auto it = users.find(username);
-        if (it != users.end()) {
-            if (it->second.getIsLocked()) {
+        User* user = findUserByUsername(username);
+        if (user) {
+            if (user->getIsLocked()) {
                 cout << "Your account is locked." << endl;
                 return nullptr;
             }
-            if (it->second.getPassword() == password) {
+            if (user->getPassword() == password) {
                 cout << "Login successful.\n";
-                return &it->second;
+                return user;
             }
         }
         cout << "Invalid username or password.\n";
         return nullptr;
     }
-
 
     void editUserProfile(User* user) {
         if (user) {
@@ -148,12 +160,18 @@ public:
                 cout << "\nEnter new details:\n";
                 cout << "New full name: ";
                 getline(cin, fullName);
+                if (!isAlpha(fullName)) {
+                    cout << "Full name can only contain letters. Please try again.\n";
+                    continue;
+                }
+
                 cout << "New contact number: ";
                 getline(cin, contactNumber);
                 if (!isValidPhoneNumber(contactNumber)) {
                     cout << "Invalid contact number. Please try again.\n";
                     continue;
                 }
+
                 cout << "New email: ";
                 getline(cin, email);
                 if (!isValidEmail(email)) {
@@ -213,10 +231,10 @@ public:
     }
 
     void lockUnlockUser(const string& username) {
-        auto it = users.find(username);
-        if (it != users.end()) {
-            it->second.setIsLocked(!it->second.getIsLocked());
-            cout << (it->second.getIsLocked() ? "User has been locked." : "User has been unlocked.") << endl;
+        User* user = findUserByUsername(username);
+        if (user) {
+            user->setIsLocked(!user->getIsLocked());
+            cout << (user->getIsLocked() ? "User has been locked." : "User has been unlocked.") << endl;
             saveUsers();
         } else {
             cout << "User not found!" << endl;
@@ -305,33 +323,72 @@ public:
     }
 
 private:
-    unordered_map<string, User> users;
+    Node* head;
     User* loggedInUser = nullptr;
     static const string fileName;
+
+    void addUser(const User& user) {
+        Node* newNode = new Node(user);
+        if (!head) {
+            head = newNode;
+        } else {
+            Node* current = head;
+            while (current->next) {
+                current = current->next;
+            }
+            current->next = newNode;
+        }
+    }
 
     void loadUsers() {
         ifstream inFile(fileName.c_str());
         string line;
         while (getline(inFile, line)) {
-            User user = User::load(line);
-            users[user.getUsername()] = user;
+            addUser(User::load(line));
         }
     }
 
     void saveUsers() {
         ofstream outFile(fileName.c_str());
-        for (const auto& pair : users) {
-            pair.second.save(outFile);
+        Node* current = head;
+        while (current) {
+            current->user.save(outFile);
+            current = current->next;
         }
     }
 
-    bool isValidPhoneNumber(const string& number) {
-        for (char c : number) {
-            if (!isdigit(c)) {
+    void clearList() {
+        Node* current = head;
+        while (current) {
+            Node* next = current->next;
+            delete current;
+            current = next;
+        }
+        head = nullptr;
+    }
+
+    User* findUserByUsername(const string& username) {
+        Node* current = head;
+        while (current) {
+            if (current->user.getUsername() == username) {
+                return &current->user;
+            }
+            current = current->next;
+        }
+        return nullptr;
+    }
+
+    bool isAlpha(const string& str) {
+        for (char c : str) {
+            if (!isalpha(c) && c != ' ') {
                 return false;
             }
         }
         return true;
+    }
+
+    bool isValidPhoneNumber(const string& number) {
+        return (number.length() == 10 || number.length() == 11) && number.substr(0, 2) == "01";
     }
 
     bool isValidEmail(const string& email) {

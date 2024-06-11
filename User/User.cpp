@@ -4,13 +4,12 @@
 #include <cctype>
 #include <limits>
 using namespace std;
-
+class UserManager;
 class User {
 public:
-    User() : isLocked(false) {}
-    User(const string& fullName, const string& username, const string& contactNumber, const string& email, const string& password, bool isLocked = false)
-        : fullName(fullName), username(username), contactNumber(contactNumber), email(email), password(password), isLocked(isLocked) {}
-
+	void save(ofstream& outFile) const {
+        outFile << fullName << "," << username << "," << contactNumber << "," << email << "," << password << "," << isLocked << "\n";
+    }
     void editProfile(const string& newFullName, const string& newContactNumber, const string& newEmail) {
         fullName = newFullName;
         contactNumber = newContactNumber;
@@ -20,6 +19,11 @@ public:
     void changePassword(const string& newPassword) {
         password = newPassword;
     }
+    User() : isLocked(false) {}
+    User(const string& fullName, const string& username, const string& contactNumber, const string& email, const string& password, bool isLocked = false)
+        : fullName(fullName), username(username), contactNumber(contactNumber), email(email), password(password), isLocked(isLocked) {}
+
+    
 
     const string& getUsername() const { return username; }
     const string& getPassword() const { return password; }
@@ -29,9 +33,7 @@ public:
     bool getIsLocked() const { return isLocked; }
     void setIsLocked(bool locked) { isLocked = locked; }
 
-    void save(ofstream& outFile) const {
-        outFile << fullName << "," << username << "," << contactNumber << "," << email << "," << password << "," << isLocked << "\n";
-    }
+    
 
     static User load(const string& line) {
         size_t pos = 0;
@@ -54,6 +56,8 @@ private:
     string email;
     string password;
     bool isLocked;
+    
+    
 };
 
 class Node {
@@ -77,6 +81,7 @@ public:
 
     void registerUser() {
         string fullName, username, contactNumber, email, password, confirmPassword;
+        bool valid;
         while (true) {
             cout << "\nPlease enter your information\n";
             cout << "Full name: ";
@@ -85,24 +90,43 @@ public:
                 cout << "Full name can only contain letters. Please try again.\n";
                 continue;
             }
+			do{
+				fflush(stdin); 
+				cout << "Username: ";
+	            getline(cin, username);
+	            if (findUserByUsername(username) != nullptr) {
+	                cout << "Username already exists. Please try again.\n"<<endl;
+	            }}while(findUserByUsername(username) != nullptr);
+            
+			do{fflush(stdin); 
+				cout << "Contact number: ";
+	            getline(cin, contactNumber);
+	            valid=true;
+	            if (!isValidPhoneNumber(contactNumber)) {
+	                cout << "Invalid contact number. Please try again.\n"<<endl;
+	                valid=false;
+	            }else if(isPhoneNumberExists(contactNumber,username ))
+				{cout << "Contact number already exists. Please try again.\n"<<endl;
+				valid=false;}
+			}while(!valid);
+            
 
-            cout << "Username: ";
-            getline(cin, username);
-
-            cout << "Contact number: ";
-            getline(cin, contactNumber);
-            if (!isValidPhoneNumber(contactNumber)) {
-                cout << "Invalid contact number. Please try again.\n";
-                continue;
-            }
-
-            cout << "Email: ";
+			do{
+			fflush(stdin); 
+			cout << "Email: ";
             getline(cin, email);
+            valid=true;
             if (!isValidEmail(email)) {
-                cout << "Invalid email format. Please try again.\n";
-                continue;
-            }
+                cout << "Invalid email format. Please try again.\n"<<endl;
+                valid=false;
+            }else if(isEmailExists(email,username ))
+			{cout << "Email already exists. Please try again.\n"<<endl;
+			valid=false;
+			}	
+			}while(!valid);
+           
 
+			
             cout << "Password: ";
             getline(cin, password);
             cout << "Confirm Password: ";
@@ -113,12 +137,9 @@ public:
                 continue;
             }
 
-            if (findUserByUsername(username) != nullptr) {
-                cout << "Username already exists. Please try again.\n";
-                continue;
-            }
-
             addUser(User(fullName, username, contactNumber, email, password));
+            saveUsers();
+            system("cls");
             cout << "Registration successful. Logging in...\n";
             loggedInUser = findUserByUsername(username);
             break;
@@ -140,15 +161,19 @@ public:
                 return nullptr;
             }
             if (user->getPassword() == password) {
+            	system("cls");
                 cout << "Login successful.\n";
                 return user;
             }
         }
-        cout << "Invalid username or password.\n";
+        cout << "Invalid username or password.\n"<<endl;
         return nullptr;
     }
 
     void editUserProfile(User* user) {
+    	bool valid=true;
+    	string uname;
+		uname=user->getUsername();
         if (user) {
             string fullName, contactNumber, email;
             while (true) {
@@ -165,21 +190,34 @@ public:
                     continue;
                 }
 
-                cout << "New contact number: ";
-                getline(cin, contactNumber);
-                if (!isValidPhoneNumber(contactNumber)) {
-                    cout << "Invalid contact number. Please try again.\n";
-                    continue;
-                }
+                do{fflush(stdin); 
+				cout << "New Contact Number: ";
+	            getline(cin, contactNumber);
+	            valid=true;
+	            if (!isValidPhoneNumber(contactNumber)) {
+	                cout << "Invalid contact number. Please try again.\n"<<endl;
+	                valid=false;
+	            }else if(isPhoneNumberExists(contactNumber,uname))
+				{cout << "Contact number already exists. Please try again.\n"<<endl;
+				valid=false;}
+			}while(!valid);
 
-                cout << "New email: ";
-                getline(cin, email);
-                if (!isValidEmail(email)) {
-                    cout << "Invalid email format. Please try again.\n";
-                    continue;
-                }
+			do{
+			fflush(stdin); 
+			cout << "New Email: ";
+            getline(cin, email);
+            valid=true;
+            if (!isValidEmail(email)) {
+                cout << "Invalid email format. Please try again.\n"<<endl;
+                valid=false;
+            }else if(isEmailExists(email,uname))
+			{cout << "Email already exists. Please try again.\n"<<endl;
+			valid=false;
+			}	
+			}while(!valid);
+                
 
-                cout << "\nUpdated profile details:\n";
+                cout << "\nNew profile details:\n";
                 cout << "Full name: " << fullName << "\n";
                 cout << "Contact number: " << contactNumber << "\n";
                 cout << "Email: " << email << "\n";
@@ -192,6 +230,7 @@ public:
                 if (confirm == 'y' || confirm == 'Y') {
                     user->editProfile(fullName, contactNumber, email);
                     cout << "Profile updated successfully.\n";
+                    saveUsers();
                     break;
                 } else {
                     cout << "Profile update canceled.\n";
@@ -225,6 +264,7 @@ public:
 
                 user->changePassword(newPassword);
                 cout << "Password changed successfully.\n";
+                saveUsers();
                 break;
             }
         }
@@ -254,7 +294,7 @@ public:
     }
 
     void displayProfileMenu() {
-        cout << "========== Profile Menu ==========\n";
+        cout << "\n========== Profile Menu ==========\n";
         cout << "1. Edit Profile\n2. Change Password\n3. Back to Main Menu\n";
         cout << "Enter your choice: ";
     }
@@ -319,14 +359,16 @@ public:
                         break;
                 }
             }
-        } while (true);
+        }while (true);
     }
 
 private:
     Node* head;
     User* loggedInUser = nullptr;
-    static const string fileName;
-
+   string fileName = "users.txt";
+	friend void saveUsers(UserManager& userManager);
+    friend void editUserProfile(UserManager& userManager, User* user);
+    friend void changeUserPassword(UserManager& userManager, User* user);
     void addUser(const User& user) {
         Node* newNode = new Node(user);
         if (!head) {
@@ -394,9 +436,28 @@ private:
     bool isValidEmail(const string& email) {
         return email.find('@') != string::npos;
     }
-};
+    bool isPhoneNumberExists(const string& phoneNumber,const string& uname) {
+        Node* current = head;
+        while (current) {
+            if (current->user.getContactNumber() == phoneNumber&&current->user.getUsername()!=uname) {
+                return true;
+            }
+            current = current->next;
+        }
+        return false;
+    }
 
-const string UserManager::fileName = "users.txt";
+    bool isEmailExists(const string& email,const string& uname) {
+        Node* current = head;
+        while (current) {
+            if (current->user.getEmail() == email&&current->user.getUsername()!=uname) {
+                return true;
+            }
+            current = current->next;
+        }
+        return false;
+    }
+};
 
 int main() {
     UserManager userManager;

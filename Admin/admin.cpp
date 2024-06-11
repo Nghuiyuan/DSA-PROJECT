@@ -188,11 +188,55 @@ public:
         }
         return false;
     }
+    
+    bool isContactUnique(const string &contact) 
+	{
+    for (int i = 0; i < adminCount; ++i) {
+        if (admins[i].contactNumber == contact) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isAdminnameUnique(const string &admin) {
+    for (int i = 0; i < adminCount; ++i) {
+        if (admins[i].adminname == admin) {
+            return false;
+        }
+    }
+    return true;
+}
 
     void addAdmin(const string &adminname, const string &password, bool isSuperAdmin) {
-        string sex, contact;
+        string sex, contact, admin;
         int age;
         int attempts = 0;
+        
+while (true) {
+    string adminname;
+    cout << "Please enter new admin username: ";
+    getline(cin, adminname);
+    
+    if (attempts >= 2) {
+        cout << "\nInvalid input! You have exceeded the maximum number of attempts." << endl;
+        return; // Return to main menu
+    }
+    
+    if (!isAdminnameUnique(adminname)) {
+        cout << "Admin username already exists! Please enter a unique username." << endl;
+        attempts++;
+    } else {
+        string password;
+        cout << "Please enter new admin password: ";
+        getline(cin, password);
+        addAdmin(adminname, password, false);
+        cout << "\nAdmin added successfully!" << endl;
+        break;
+    }
+}
+
+
 
         while (true) {
             cout << "Please enter sex (male/female): ";
@@ -200,7 +244,7 @@ public:
             if (sex != "male" && sex != "female") {
 				attempts++;
 				if (attempts >= 2) {
-					cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
+					cout << "\nInvalid input! You have exceeded the maximum number of attempts." << endl;
 					return;
 				}
 				cout << "Invalid sex! Please enter either 'male' or 'female'." << endl;
@@ -219,7 +263,7 @@ public:
         	if (cin.fail()) {
         	    attempts++;
         	    if (attempts >= 2) {
-        	        cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
+        	        cout << "\nInvalid input! You have exceeded the maximum number of attempts." << endl;
         	        return;
         	    }
         	    cout << "Invalid age! Please enter a number." << endl;
@@ -241,14 +285,16 @@ public:
         	if (contact.length() < 10 || contact.length() > 11) {
         	    attempts++;
         	    if (attempts >= 2) {
-        	        cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
+        	        cout << "\nInvalid input! You have exceeded the maximum number of attempts." << endl;
         	        return;
         	    }
         	    cout << "Invalid contact number! Please enter a number between 10 and 11 characters long." << endl;
-        	} else {
-        	    break;
-        	}
-    	}
+        	}else if (!isContactUnique(contact)) {
+            cout << "Contact number already exists! Please enter a unique contact number." << endl;
+        } else {
+            break;
+        }
+    }
 	
     	if (adminCount < MAX_ADMINS) {
     	    admins[adminCount++] = Admin(adminname, password, false, isSuperAdmin, sex, age, contact);
@@ -274,7 +320,6 @@ void editProfile() {
     cout << "Admin Details:" << endl;
     cout<<"------------------------------"<<endl;
     cout << "Username: " << loggedInAdmin->adminname << endl;
-    cout << "Password: " << loggedInAdmin->password << endl;
     cout << "Sex: " << loggedInAdmin->sex << endl;
     cout << "Age: " << loggedInAdmin->age << endl;
     cout << "Contact Number: " << loggedInAdmin->contactNumber << endl;
@@ -291,14 +336,34 @@ void editProfile() {
     cin.ignore();
 
     switch (choice) {
-        case 1: {
+    	
+       case 1: {
+    int attempts = 0;
+    while (attempts < 2) {
+        string oldPassword;
+        cout << "Enter old password: ";
+        getline(cin, oldPassword);
+        
+        if (oldPassword == loggedInAdmin->password) {
+            string newPassword;
             cout << "Enter new password: ";
             getline(cin, newPassword);
+            
             if (!newPassword.empty()) {
                 loggedInAdmin->password = newPassword;
             }
             break;
+        } else {
+            attempts++;
+            if (attempts >= 2) {
+                cout << "\nIncorrect old password and exceeded the maximum number of attempts. Password remains unchanged." << endl;
+                return;
+            }
+            cout << "Incorrect old password. Please try again." << endl;
         }
+    }
+    break;
+}
 
         case 2: {
             while (true) {
@@ -343,24 +408,28 @@ void editProfile() {
             break;
         }
 
-        case 4: {
-            while (true) {
-                cout << "Please enter contact number: ";
-                getline(cin, newContact);
-                if (newContact.length() < 10 || newContact.length() > 11) {
-                    attempts++;
-                    if (attempts >= 2) {
-                        cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
-                        return;
-                    }
-                    cout << "Invalid contact number! Please enter a number between 10 and 11 characters long." << endl;
-                } else {
-                    loggedInAdmin->contactNumber = newContact;
-                    break;
-                }
+case 4: {
+    while (true) {
+        cout << "Please enter new contact number: ";
+        getline(cin, newContact);
+        
+        if (newContact.length() < 10 || newContact.length() > 11) {
+            attempts++;
+            if (attempts >= 2) {
+                cout << "Invalid input! You have exceeded the maximum number of attempts." << endl;
+                return;
             }
+            cout << "Invalid contact number! Please enter a number between 10 and 11 characters long." << endl;
+        } else if (!isContactUnique(newContact)) {
+            cout << "Contact number already exists! Please enter a unique contact number." << endl;
+        } else {
+            loggedInAdmin->contactNumber = newContact;
             break;
         }
+    }
+    break;
+}
+
 
         case 5:
             return;
@@ -377,22 +446,24 @@ void editProfile() {
     cout << "Age: " << loggedInAdmin->age << endl;
     cout << "Contact Number: " << loggedInAdmin->contactNumber << endl;
 
-    char confirmSave;
-    cout << "Do you want to save the changes to file? (y/n): ";
-    cin >> confirmSave;
-    if (tolower(confirmSave) == 'y') {
-        writeAdminsToFile();
-        cout << "Changes saved to file." << endl;
-    } else {
-        cout << "Changes not saved." << endl;
-    }
+char confirmSave;
+cout << "Do you want to save the changes to file? (y/n): ";
+cin >> confirmSave;
+if (tolower(confirmSave) == 'y') {
+    writeAdminsToFile();
+    cout << "Changes saved to file." << endl;
+    cout << "\nProfile updated successfully!" << endl; // Added line
+} else {
+    cout << "Changes not saved." << endl;
+}
 
-    char continueEditing;
-    cout << "Do you want to continue editing? (y/n): ";
-    cin >> continueEditing;
-    if (tolower(continueEditing) == 'y') {
-        editProfile();
-    }
+char continueEditing;
+cout << "Do you want to continue editing? (y/n): ";
+cin >> continueEditing;
+if (tolower(continueEditing) == 'y') {
+    editProfile();
+}
+
 }
 
 void deleteAdmin(const string &adminname) {
@@ -430,54 +501,63 @@ void deleteAdmin(const string &adminname) {
 
 
 //ADMIN
-	void viewAdminList() {
-    	if (!isSuperAdmin) {
-    	    cout << "Only Super Admin can view admin details." << endl;
-    	    return;
-    	}
-    	
-    	if(adminCount == 0)
-    	{
-    		cout<<"No admin found."<<endl;
-    		return;
-		}
-		
-		int sortad=0;
-		
-		while(sortad<1 || sortad>2)
-		{
-			cout<<"--------------------"<<endl;
-			cout<<"Sorting Menu"<<endl;
-			cout<<"--------------------"<<endl;
-			cout<<"Select sorting order: "<<endl;
-			cout<<"\n1. Ascending (Selection Sort) "<<endl;
-		    cout<<"\n2. Descending (Quick Sort) "<<endl;
-		    
-		    cin>>sortad;
-		    
-		    if(sortad<1 || sortad>2)
-		    {
-		    	cout<<"Invalid choice. Please select option 1 or option 2."<<endl;
-			}
-		}
-		
-		if (sortad == 1)
-		 {
-		 selectionSortAdmins(admins, adminCount, true); // Ascending
-		 } 
-		 else if (sortad == 2) 
-		 {
-		 quickSortAdmins(admins, 0, adminCount - 1); // Descending
-         }
-		cout<<"--------------------"<<endl;
-		cout<<"Admin List:"<<endl;
-		cout<<"--------------------"<<endl;
-		for(int i=0; i<adminCount; ++i)
-		{
-			admins[i].displayAdmin();
-			cout<<"\n"<<endl;
-		}
-	}
+void viewAdminList() {
+    if (!isSuperAdmin) {
+        cout << "Only Super Admin can view admin details." << endl;
+        return;
+    }
+    
+    if (adminCount == 0) {
+        cout << "No admin found." << endl;
+        return;
+    }
+    
+    cout << "--------------------------------------------------------------------------------" << endl;
+    cout << setw(12) << left << "Adminname" 
+         << setw(10) << left << "Locked" 
+         << setw(15) << left << "Role" 
+         << setw(10) << left << "Sex" 
+         << setw(5) << left << "Age" 
+         << setw(15) << left << "Contact Number" << endl;
+    cout << "--------------------------------------------------------------------------------" << endl;
+
+    for (int i = 0; i < adminCount; ++i) {
+        admins[i].displayAdmin();
+        cout << "\n" << endl;
+    }
+    
+    int sortad = 0;
+    while (sortad < 1 || sortad > 2) {
+        cout << "--------------------" << endl;
+        cout << "Sorting Menu" << endl;
+        cout << "--------------------" << endl;
+        cout << "Select sorting order: " << endl;
+        cout << "\n1. Ascending (Selection Sort)" << endl;
+        cout << "\n2. Descending (Quick Sort)" << endl;
+        
+        cin >> sortad;
+        
+        if (sortad < 1 || sortad > 2) {
+            cout << "Invalid choice. Please select option 1 or option 2." << endl;
+        }
+    }
+    
+    cout << "--------------------" << endl;
+
+    if (sortad == 1) {
+        selectionSortAdmins(admins, adminCount, true); // Ascending
+    } else if (sortad == 2) {
+        quickSortAdmins(admins, 0, adminCount - 1); // Descending
+    }
+
+    cout << "Admin List:" << endl;
+    cout << "--------------------------------------------------------------------------------" << endl;
+    for (int i = 0; i < adminCount; ++i) {
+        admins[i].displayAdmin();
+        cout << "\n" << endl;
+    }
+}
+
 	void selectionSortAdmins(Admin admins[], int n, bool ascending) 
 {
     for (int i = 0; i < n - 1; ++i) 
@@ -532,13 +612,18 @@ void displayAdminHeader() {
 }
 
 int binarySearchAdmin(Admin admins[], int left, int right, string key) {
+    transform(key.begin(), key.end(), key.begin(), ::tolower); // Convert key to lowercase
     while (left <= right) {
         int mid = left + (right - left) / 2;
 
-        if (admins[mid].adminname == key)
+        // Convert adminname to lowercase before comparison
+        string adminnameLower = admins[mid].adminname;
+        transform(adminnameLower.begin(), adminnameLower.end(), adminnameLower.begin(), ::tolower);
+
+        if (adminnameLower == key)
             return mid;
 
-        if (admins[mid].adminname < key)
+        if (adminnameLower < key)
             left = mid + 1;
         else
             right = mid - 1;
@@ -547,27 +632,18 @@ int binarySearchAdmin(Admin admins[], int left, int right, string key) {
 }
 
 int jumpSearchAdminBySex(Admin admins[], int n, string key) {
-    int step = sqrt(n);
-    int prev = 0;
-
-    while (admins[min(step, n) - 1].sex < key) {
-        prev = step;
-        step += sqrt(n);
-        if (prev >= n)
-            return -1;
+    // Convert key to lowercase
+    transform(key.begin(), key.end(), key.begin(), ::tolower);
+    for (int i = 0; i < n; i++) {
+        // Convert sex to lowercase before comparison
+        string sexLower = admins[i].sex;
+        transform(sexLower.begin(), sexLower.end(), sexLower.begin(), ::tolower);
+        if (sexLower == key)
+            return i;
     }
-
-    while (admins[prev].sex < key) {
-        prev++;
-        if (prev == min(step, n))
-            return -1;
-    }
-
-    if (admins[prev].sex == key)
-        return prev;
-
     return -1;
 }
+
 
 void binarySearchByAdminname() {
     string searchAdminname;
@@ -623,36 +699,46 @@ void searchAdmin() {
 
     int choice;
 
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << setw(12) << left << "Adminname" 
-         << setw(10) << left << "Locked" 
-         << setw(15) << left << "Role" 
-         << setw(10) << left << "Sex" 
-         << setw(5) << left << "Age" 
-         << setw(15) << left << "Contact Number" << endl;
-    cout << "--------------------------------------------------------------------------------" << endl;
-    for (int i = 0; i < adminCount; ++i) {
-        admins[i].displayAdmin();
-    }
+    do {
+        cout << "--------------------------------------------------------------------------------" << endl;
+        cout << setw(12) << left << "Adminname" 
+             << setw(10) << left << "Locked" 
+             << setw(15) << left << "Role" 
+             << setw(10) << left << "Sex" 
+             << setw(5) << left << "Age" 
+             << setw(15) << left << "Contact Number" << endl;
+        cout << "--------------------------------------------------------------------------------" << endl;
+        for (int i = 0; i < adminCount; ++i) {
+            admins[i].displayAdmin();
+        }
 
-    cout << "Select search option:" << endl;
-    cout << "1. Binary Search by Admin Name" << endl;
-    cout << "2. Jump Search by Admin Sex" << endl;
-    cout << "Enter your choice: ";
-    cin >> choice;
+        cout << "Select search option:" << endl;
+        cout << "1. Binary Search by Admin Name" << endl;
+        cout << "2. Jump Search by Admin Sex" << endl;
+        cout << "Enter your choice: ";
+        cin >> choice;
 
-    switch (choice) {
-        case 1:
-            binarySearchByAdminname();
+        switch (choice) {
+            case 1:
+                binarySearchByAdminname();
+                break;
+            case 2:
+                jumpSearchByAdminSex();
+                break;
+            default:
+                cout << "Invalid choice." << endl;
+                break;
+        }
+
+        char continueSearch;
+        cout << "\nDo you want to continue searching? (y/n): ";
+        cin >> continueSearch;
+        if (tolower(continueSearch) != 'y') {
             break;
-        case 2:
-            jumpSearchByAdminSex();
-            break;
-        default:
-            cout << "Invalid choice." << endl;
-            break;
-    }
+        }
+    } while (true);
 }
+
 	
 
 	void lockUnlockUser(const string &username) {
@@ -1022,7 +1108,7 @@ void lockUnlockAdmin(const string &adminname) {
 
             switch (choice) {
                 case 1: {
-                    if (!isSuperAdmin) {
+                	 if (!isSuperAdmin) {
                         cout << "Only Super Admin can add a new admin." << endl;
                         break;
                     }
@@ -1030,21 +1116,16 @@ void lockUnlockAdmin(const string &adminname) {
                     cout << "-----------------------------" << endl;
                     cout << "Add Admin" << endl;
                     cout << "-----------------------------" << endl;
-                    cout << "Please enter new admin username: ";
-                    getline(cin, adminname);
-                    cout << "Please enter new admin password: ";
-                    getline(cin, password);
                     addAdmin(adminname, password, false);
-                    cout << "\nAdmin added successfully!" << endl;
                     break;
-                }
+                    
+            }
 
                 case 2: {
                     cout << "-----------------------------" << endl;
                     cout << "Edit Profile" << endl;
                     cout << "-----------------------------" << endl;
                     editProfile();
-                    cout << "\nProfile updated successfully!" << endl;
                     break;
                 }
 

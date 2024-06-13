@@ -496,49 +496,79 @@ private:
         }
     }
 
-    void printSReservations(ReservationNode* tempHead) const {
+void printSReservations(ReservationNode* tempHead) const {
+	string viewDetails;
     if (!tempHead) {
         cout << "No reservations to display." << endl;
         return;
     }
 
-   
-    char viewDetails;
     do {
-    cout << "--------------------------------------------------------------------------------------------------------" << endl;
-    cout << setw(5) << left << "No."
-         << setw(30) << left << "Customer Name"
-         << setw(21) << "Date And Time"
-         << setw(8) << "People"
-         << setw(17) << "Phone Number"
-         << setw(20) << "Total Price" << endl;
-    cout << "--------------------------------------------------------------------------------------------------------" << endl;
-    int index = 1;
-    for (ReservationNode* temp = tempHead; temp != nullptr; temp = temp->next, ++index) {
-        cout << setw(5) << left << index
-             << setw(30) << left << temp->customerName
-             << setw(21) << temp->reservationDateTime
-             << setw(8) << temp->people
-             << setw(17) << temp->phone
-             <<"RM "<< setw(20) << fixed << setprecision(2) << calculateTotal(temp) << endl;
-    }
-    cout << "--------------------------------------------------------------------------------------------------------" << endl;
-        
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+        cout << setw(5) << left << "No."
+             << setw(30) << left << "Customer Name"
+             << setw(21) << "Date And Time"
+             << setw(8) << "People"
+             << setw(17) << "Phone Number"
+             << setw(20) << "Total Price" << endl;
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+        ReservationNode* filteredHead = nullptr;
+        ReservationNode* filteredTail = nullptr;
+    	int index = 1;
+        for (ReservationNode* temp = tempHead; temp != nullptr; temp = temp->next) {
+            if (temp->customerName == u->getUsername()) {
+                if (!filteredHead) {
+                    filteredHead = filteredTail = new ReservationNode(*temp);
+                } else {
+                    filteredTail->next = new ReservationNode(*temp);
+                    filteredTail = filteredTail->next;
+                }
+
+                cout << setw(5) << left << index++
+                     << setw(30) << left << temp->customerName
+                     << setw(21) << temp->reservationDateTime
+                     << setw(8) << temp->people
+                     << setw(17) << temp->phone
+                     << "RM " << setw(20) << fixed << setprecision(2) << calculateTotal(temp) << endl;
+            }
+        }
+        cout << "--------------------------------------------------------------------------------------------------------" << endl;
+
+        if (!filteredHead) {
+            cout << "No reservations found for the logged-in user." << endl;
+            return;
+        }
+
         cout << "Do you want to view the details of any reservation? (y/n): ";
         cin >> viewDetails;
-        if (tolower(viewDetails) == 'y') {
+
+        // Transform the input to lowercase
+        for (char& c : viewDetails) { // Using 'char& c' to modify the string in place
+            c = tolower(c);
+        }
+
+        if (viewDetails == "y" || viewDetails == "yes") {
             int reservationIndex;
             cout << "Enter the reservation number to view details: ";
             cin >> reservationIndex;
-            ReservationNode* reservation = getReservationAtFilteredIndex(tempHead, reservationIndex);
+            ReservationNode* reservation = getReservationAtFilteredIndex(filteredHead, reservationIndex);
             if (reservation) {
                 printXReservation(reservation);
             } else {
                 cout << "Invalid reservation number." << endl;
             }
         }
-    } while (tolower(viewDetails) == 'y');
+
+        // Clean up filtered list
+        while (filteredHead) {
+            ReservationNode* temp = filteredHead;
+            filteredHead = filteredHead->next;
+            delete temp;
+        }
+    } while (viewDetails == "y" || viewDetails == "yes");
 }
+
+
 
 
     void printXReservation(const ReservationNode* reservation) const {
@@ -845,8 +875,9 @@ private:
     }
 
 public:
-    ReservationList() : categoryHead(nullptr), head(nullptr), tail(nullptr) {
+    ReservationList(User* user) : categoryHead(nullptr), head(nullptr), tail(nullptr), u(user) {
         loadFoodItems();
+        loadReservations();
     }
 
     ~ReservationList() {
@@ -872,7 +903,7 @@ public:
                     break;
                 case 3:
                     cout << "--History of Reservations--" << endl;
-                    printReservations();
+                    printSReservations(head);
                     break;
                 case 4:
                     cout << "Exiting...\n";
@@ -920,7 +951,7 @@ public:
         string response;
         cin >> response;
         toUpperCase(response);
-        if (response == "YES") {
+        if (response == "YES" || response == "Y") {
             addFoodToReservation(newNode);
             cout << endl << "Total Cost: RM " << fixed << setprecision(2) << calculateTotal(newNode) << endl;
         }
@@ -930,7 +961,7 @@ public:
         cout << "Do you want to save this reservation? (yes/no): ";
         cin >> response;
         toUpperCase(response);
-        if (response == "YES") {
+        if (response == "YES"|| response == "Y") {
             if (!tail) {
                 head = tail = newNode;
             } else {
@@ -1001,9 +1032,10 @@ public:
         }
     }
 
-    void printReservations() const {
-        int index = 1;
-        for (ReservationNode* temp = head; temp != nullptr; temp = temp->next, ++index) {
+void printReservations() const {
+    int index = 1;
+    for (ReservationNode* temp = head; temp != nullptr; temp = temp->next) {
+        if (temp->customerName == u->getUsername()) { // Check if reservation belongs to the logged-in user
             cout << endl << index << ". Name: " << temp->customerName << endl
                  << "   Order Date: " << temp->reservationDateTime << endl
                  << "   Total of People: " << temp->people << " people" << endl
@@ -1014,30 +1046,39 @@ public:
             while (currentOrder) {
                 cout << "   " << itemIndex++ << ". " << currentOrder->name
                      << ", RM " << fixed << setprecision(2) << currentOrder->price
-                     << " (" << currentOrder->quantity << " qty)" << endl;  // Corrected display
+                     << " (" << currentOrder->quantity << " qty)" << endl;
                 currentOrder = currentOrder->next;
             }
             double total = calculateTotal(temp);
             cout << "   Total Price: RM " << fixed << setprecision(2) << total << endl;
+            index++;
         }
     }
+    if (index == 1) {
+        cout << "No reservations found for the logged-in user." << endl;
+    }
+}
 
-    ReservationNode* getReservationAtIndex(int index) const {
-        if (index < 1 || index > getCount()) {
-            return nullptr;
-        }
-        ReservationNode* temp = head;
-        for (int count = 1; temp != nullptr && count < index; temp = temp->next, ++count);
-        return temp;
-    }
 
-    int getCount() const {
-        int count = 0;
-        for (ReservationNode* temp = head; temp; temp = temp->next) {
-            ++count;
-        }
-        return count;
+
+ReservationNode* getReservationAtIndex(int index) const {
+    if (index < 1) {
+        return nullptr;
     }
+    ReservationNode* temp = head;
+    int count = 1; // Start the counter
+    while (temp) {
+        if (temp->customerName == u->getUsername()) { // Only count reservations of the logged-in user
+            if (count == index) {
+                return temp;
+            }
+            count++;
+        }
+        temp = temp->next;
+    }
+    return nullptr;
+}
+
 };
 
 class UserManager {
@@ -1049,6 +1090,7 @@ public:
     ~UserManager() {
         saveUsers();
         clearList();
+        delete reservationList;  
     }
 
     void registerUser() {
@@ -1284,6 +1326,7 @@ public:
             cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
 
             if (loggedInUser) {
+            	reservationList = new ReservationList(loggedInUser);
                 if (choice == 1) {
                     int profileChoice;
                     do {
@@ -1310,10 +1353,16 @@ public:
                         }
                     } while (profileChoice != 3);
                 } else if (choice == 2) {
-                    r.mainMenu();
+                    if (reservationList) {	
+			            reservationList->mainMenu();
+			        } else {
+			            cout << "Not logged in." << endl;
+			        }
                 } else if (choice == 3) {
                     loggedInUser = nullptr;
                     cout << "Logged out successfully.\n";
+                            delete reservationList;  // Properly deallocate memory
+        					reservationList = nullptr;
                 } else {
                     cout << "Invalid choice.\n";
                 }
@@ -1340,7 +1389,7 @@ private:
     Node* head;
     User* loggedInUser = nullptr;
    string fileName = "users.txt";
-    ReservationList r;
+    ReservationList* reservationList = nullptr;
 	friend void saveUsers(UserManager& userManager);
     friend void editUserProfile(UserManager& userManager, User* user);
     friend void changeUserPassword(UserManager& userManager, User* user);

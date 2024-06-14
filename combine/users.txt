@@ -1,0 +1,12 @@
+Benjamin Ng,benjaminng89,0123456789,benjaminng@gmail.com,bng200202,0
+Emma Brown,emmab45,0133333333,emmab@gmail.com,ebrown303,0
+Ethan Tan,ethantan04,0112345678,ethantan@gmail.com,etan6060,0
+Isabella Lim,isabellalim10,0190123456,isabellalim@gmail.com,0ilim707,0
+James Lee,jamesl87,0165432198,jamesl@gmail.com,jlee4560,0
+Lily Wong,lilyw01,0156789012,lilyw@gmail.com,lwong5005,0
+Lucas Wang,lucasw6,0178901234,lucasw@gmail.com,lwang404,0
+Olivia Taylor,oliviataylor27,0187654321,oliviataylor@gmail.com,otaylor123,0
+sam,sam0,0162738293,sam@gmail.com,samm1234,0
+Sophia Chen,sophiac123,0198765432,sophiac@gmail.com,schen7890,0
+William Cheong,williamc32,0167890123,williamc@gmail.com,wcheong808,0
+NG YUAN,yuan123,0167629520,yuan@gmail.com,yuan1234,1

@@ -1503,8 +1503,7 @@ class foodmenu :public FoodList{
 	double price; 
 	public: 
 	foodmenu()
-	{    food.readDataFromFile("fooddata.txt");
-	}
+	{   food.readDataFromFile("fooddata.txt");}
 	friend bool isValidPrice(double price);
 	void displayaction()
 	{	string ans,fname,foodname;
@@ -1924,7 +1923,7 @@ private:
     ReservationNode* head;
     ReservationNode* tail;
     const int reservationYear = 2024;
-
+friend void mainmenu();
     ReservationNode* mergeSortedLists(ReservationNode* left, ReservationNode* right, bool ascending = true) {
         if (!left) return right;
         if (!right) return left;
@@ -2031,7 +2030,12 @@ private:
         newOrder->price = item->price;
     }
     
-void searchByName(const string& substring) {
+    void searchByName(const string& substring) {
+    string searchInput = substring;
+    // Correctly convert the search input to lower case
+    std::transform(searchInput.begin(), searchInput.end(), searchInput.begin(),
+                   [](unsigned char c) -> unsigned char { return std::tolower(static_cast<int>(c)); });
+
     head = mergeSortByName(head); // Ensures the list is sorted by name for more intuitive output.
 
     bool found = false;
@@ -2039,8 +2043,13 @@ void searchByName(const string& substring) {
     ReservationNode* tempTail = nullptr;
 
     for (ReservationNode* current = head; current != nullptr; current = current->next) {
-        // Check if the current name contains the given substring
-        if (current->customerName.find(substring) != string::npos) { // find returns npos if no match is found
+        string currentName = current->customerName;
+        // Convert current reservation name to lower case
+        transform(currentName.begin(), currentName.end(), currentName.begin(),
+                  [](unsigned char c) { return std::tolower(static_cast<int>(c)); });
+
+        // Check if the current name contains the given substring, now case-insensitive
+        if (currentName.find(searchInput) != string::npos) { // find returns npos if no match is found
             ReservationNode* newNode = new ReservationNode(*current);
             newNode->next = nullptr;
             if (!tempHead) {
@@ -2054,6 +2063,7 @@ void searchByName(const string& substring) {
     }
 
     if (found) {
+    	tempHead = mergeSort(tempHead, true);
         printSReservations(tempHead);
     } else {
         cout << "No reservation found containing: " << substring << endl;
@@ -2067,24 +2077,24 @@ void searchByName(const string& substring) {
     }
 }
 
-
-
-
-
-
 void searchByDate() {
-    int month = getMonthFromUser("Enter reservation month (06-12): ");
+    int month = getMonthFromUser("Enter reservation month (MM): ");
     string date = selectDayFromFile(month);
 
-    head = mergeSort(head, true);
+    // Construct a full date string in YYYY-MM-DD format for matching
+    string fullDate = to_string(reservationYear) + "-" + date; // reservationYear is 2024 as per your structure
+
+    head = mergeSort(head, true); // Ensure the list is sorted by date for more effective searching
 
     bool found = false;
     ReservationNode* tempHead = nullptr;
     ReservationNode* tempTail = nullptr;
 
     for (ReservationNode* current = head; current != nullptr; current = current->next) {
-        if (current->reservationDateTime.substr(5, 5) == date) {  // Matching the formatted date (MM-DD)
-            ReservationNode* newNode = new ReservationNode(*current);
+        // Only compare the date part (first 10 characters of the reservationDateTime)
+        if (current->reservationDateTime.substr(0, 10) == fullDate) {
+            ReservationNode* newNode = new ReservationNode(*current); // Use the copy constructor
+            newNode->next = nullptr;
             if (!tempHead) {
                 tempHead = tempTail = newNode;
             } else {
@@ -2096,18 +2106,18 @@ void searchByDate() {
     }
 
     if (found) {
+    	tempHead = mergeSortByName(tempHead);
         printSReservations(tempHead);
     } else {
-        cout << "No reservations found on the date: " << date << endl;
+        cout << "No reservations found on the date: " << fullDate << endl;
     }
 
     // Clean up temporary list
     while (tempHead) {
         ReservationNode* temp = tempHead;
         tempHead = tempHead->next;
-        delete temp;
-    }
-}
+		delete temp;}
+		}
 void viewUnsortedReservations() {
     if (!head) {
         cout << "No reservations to display." << endl;
@@ -2117,20 +2127,15 @@ void viewUnsortedReservations() {
     }
 }
     void displayMainMenu() {
-        cout << endl
-             << "====================================================================" << endl
-             << "\tView Reservation" << endl
-             << "====================================================================" << endl;
-             viewUnsortedReservations();
 	           cout<<"Operation : "<<endl
-             << "1. Sort by Date Ascending" << endl
-             << "2. Sort by Date Descending" << endl
-             << "3. Sort by Name Ascending" << endl
-             << "4. Search Reservation by Name" << endl
-             << "5. Search Reservation by Date" << endl
+             << "1. View And Sort All Reservation by Date Ascending" << endl
+             << "2. View And Sort All Reservation by Date Descending" << endl
+             << "3. View And Sort All Reservation by Name Ascending" << endl
+             << "4. Search All Reservation by Name and sort by date ascending" << endl
+             << "5. Search All Reservation by Date and sort by name ascending" << endl
              << "\nIf you want to go back to the main page, please enter 'm'." << endl
     		 << "If you want to exit, please enter 'e'." << endl
-             << "Please enter your selection: ";
+             << "Please enter your selection: ";mainMenu();
     }
 
         double calculateTotal(const ReservationNode* reservation) const {
@@ -2342,6 +2347,9 @@ void viewUnsortedReservations() {
             cout << "Invalid reservation reference provided." << endl;
             return;
         }
+        cout<<"===================================="<<endl;
+        cout<<"Reservation Details"<<endl;
+        cout<<"===================================="<<endl;
         cout <<endl
             << "Name : " << reservation->customerName << endl
             << "Order Date : " << reservation->reservationDateTime << endl
@@ -2382,9 +2390,7 @@ void viewUnsortedReservations() {
 
     void mainMenu() {
         string input;
-        loadReservations();
         bool valid=false;
-            displayMainMenu();
             string ans;
             cin >> ans;
 do{	
@@ -2398,37 +2404,39 @@ do{
 		head = mergeSort(head, true);
 			cout << "Reservations sorted by date (Ascending):\n";
 			printSReservations(head);
-			 mainMenu();
+			displayMainMenu();
 		}else if(ans=="2")
 		{	valid=true;
 			system("cls");
 			head = mergeSort(head, false);
 			cout << "Reservations sorted by date (Descending):\n";
 			printSReservations(head);
-			 mainMenu();
+			displayMainMenu();
 		}else if(ans=="3")
 		{	valid=true;
 		system("cls");
 		head = mergeSortByName(head);
 			cout << "Reservations sorted by customer name (Ascending):\n";
 			printSReservations(head);
-			 mainMenu();
+			displayMainMenu();;
 		}else if (ans == "4") {
 		  valid=true;
-		  cout << "Enter part of the name to search for: ";
+		  cout<<"=================================================================="<<endl;
+		cout<<" Search reservation by Name and sort by date ascending"<<endl;
+		  cout<<"=================================================================="<<endl;
+		  cout << "Enter part of the name to search : "<<endl;
           cin.ignore(numeric_limits<streamsize>::max(), '\n');
           getline(cin, input);
           searchByName(input);
-		  mainMenu();
+		  displayMainMenu();
 		}else if (ans == "5") {
 		   valid=true;
-		   cout << "Enter the date to search for: ";
+		   cout<<"=================================================================="<<endl;
+		cout<<" Search Reservation by Date and sort by name ascending"<<endl;
+		  cout<<"=================================================================="<<endl;
+		   cout << "***Enter the date to search***"<<endl;
            searchByDate();
-		   mainMenu();
-		}else if (ans == "6") {
-		   valid=true;cin.ignore();
-		   	
-            mainMenu(); 
+		   displayMainMenu();
 		}else{
 		cout<<"Invalid selection.Please reenter your selection : ";
 			cin>>ans;
@@ -2519,7 +2527,14 @@ string adminname,password;
 	{menu.displayaction();
 	valid=true;
 	}else if(selection=="2")
-	{system("cls");reservations.mainMenu();
+	{system("cls");
+	cout << endl
+             << "====================================================================" << endl
+             << "\tView Reservation" << endl
+             << "====================================================================" << endl;
+             reservations.loadReservations();
+             reservations.viewUnsortedReservations();
+	reservations.displayMainMenu();
 	valid=true;
 	}else if(selection=="3")
 	{system("cls");

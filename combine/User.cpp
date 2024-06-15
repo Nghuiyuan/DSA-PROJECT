@@ -230,9 +230,9 @@ private:
                         cout << "Invalid quantity, returning to categories.\n";
                         continue;
                     }
+                    addFoodOrder(reservation, currentItem, quantity);
         } while (true);
     }
-
     void addFoodOrder(ReservationNode* reservation, FoodItem* item, int quantity) {
         FoodItem* newOrder = new FoodItem(*item);
         newOrder->next = reservation->foodOrders;

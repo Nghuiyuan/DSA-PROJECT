@@ -52,7 +52,7 @@ bool checkinput(string input) {
         mainmenu();
         return true;
     } else if(input=="e"||input=="E") {
-        cout<<"\nEnd Program....";
+         cout << "\nLogging out..." << endl;
         exit(0);
     }
     return false;    
@@ -663,17 +663,56 @@ int binarySearchAdmin(Admin admins[], int left, int right, string key) {
     }
     return -1;
 }
+void squickSortAdmins(Admin admins[], int low, int high) {
+    if (low < high) {
+        int pivot = spartition(admins, low, high);
+        squickSortAdmins(admins, low, pivot - 1);
+        squickSortAdmins(admins, pivot + 1, high);
+    }
+}
 
+int spartition(Admin admins[], int low, int high) {
+    Admin pivot = admins[high];
+    int i = low - 1;
+    for (int j = low; j <= high - 1; ++j) {
+        if (admins[j].adminname < pivot.adminname) {
+            ++i;
+            swap(admins[i], admins[j]);
+        }
+    }
+    swap(admins[i + 1], admins[high]);
+    return i + 1;
+}
+
+void selectionSortBySex(Admin admins[], int n, bool ascending) {
+    for (int i = 0; i < n - 1; ++i) {
+        int minIndex = i;
+        for (int j = i + 1; j < n; ++j) {
+            if ((admins[j].sex < admins[minIndex].sex) == ascending) {
+                minIndex = j;
+            }
+        }
+        if (minIndex != i) {
+            swap(admins[i], admins[minIndex]);
+        }
+    }
+}
 int jumpSearchAdminBySex(Admin admins[], int n, string key) {
-    // Convert key to lowercase
-    transform(key.begin(), key.end(), key.begin(), ::tolower);
-    for (int i = 0; i < n; i++) {
-        // Convert sex to lowercase before comparison
-        string sexLower = admins[i].sex;
-        transform(sexLower.begin(), sexLower.end(), sexLower.begin(), ::tolower);
-        if (sexLower == key)
+    int step = sqrt(n);
+    int prev = 0;
+
+    while (admins[min(step, n) - 1].sex < key) {
+        prev = step;
+        step += sqrt(n);
+        if (prev >= n)
+            return -1;
+    }
+
+    for (int i = prev; i < min(step, n); i++) {
+        if (admins[i].sex == key)
             return i;
     }
+
     return -1;
 }
 
@@ -687,9 +726,7 @@ void binarySearchByAdminname() {
     cin.ignore(); 
     getline(cin, searchAdminname);
 
-    sort(admins, admins + adminCount, [](const Admin &a, const Admin &b) {
-        return a.adminname < b.adminname;
-    });
+    squickSortAdmins(admins,0, adminCount-1);
 
     int index = binarySearchAdmin(admins, 0, adminCount - 1, searchAdminname);
 cout<<"\n"<<endl;
@@ -711,9 +748,7 @@ void jumpSearchByAdminSex() {
     cin.ignore();
     getline(cin, searchSex);
 
-    sort(admins, admins + adminCount, [](const Admin &a, const Admin &b) {
-        return a.sex < b.sex;
-    });
+    selectionSortBySex(admins, adminCount, true);
 
     int index = jumpSearchAdminBySex(admins, adminCount, searchSex);
 cout<<"\n"<<endl;
@@ -760,8 +795,8 @@ void lockUnlockAdmin(const string &adminname) {
 
 }; 
 AdminManager a("admin.txt");
-class User {
-public:
+class BaseUser {
+protected:
     string fullname;
     string username;
     string contactNumber;
@@ -769,17 +804,27 @@ public:
     string password;
     bool isLocked;
 
-    User() {}
+public:
+	friend class usermanager;
+    BaseUser() {}
 
-    User(string fname, string uname, string contact, string e, string passw, bool locked = false)
+    BaseUser(string fname, string uname, string contact, string e, string passw, bool locked = false)
         : fullname(fname), username(uname), contactNumber(contact), email(e), password(passw), isLocked(locked) {}
 
-    void displayUser() const {
-       	cout<<setw(30)<<left<<fullname<<setw(30)<<left<<username<<setw(20)<<left<<contactNumber<<setw(25)<<left<<email<<setw(10)<<left<<(isLocked ? "Yes" : "No")<<endl;
+    
+};
+class User : public BaseUser {
+public:
+    User() : BaseUser() {}
+
+    User(string fname, string uname, string contact, string e, string passw, bool locked = false)
+        : BaseUser(fname, uname, contact, e, passw, locked) {}
+void displayUser() const {
+        cout << setw(30) << left << fullname << setw(30) << left << username << setw(20) << left << contactNumber << setw(25) << left << email << setw(10) << left << (isLocked ? "Yes" : "No") << endl;
     }
 };
 
-class usermanager : public User{
+class usermanager{
 	    int userCount;
 	    User users[MAX_USERS];
     string userFile;
@@ -1027,9 +1072,9 @@ void writeUsersToFile() {
         }
     }
 	void displayUserHeader() {
-    	cout<<"---------------------------------------------------------------------------------"<<endl;
-		cout<<setw(12)<<left<<"Fullname"<<setw(12)<<left<<"Username"<<setw(20)<<left<<"Contact Number"<<setw(25)<<left<<"Email"<<setw(10)<<left<<"Locked"<<endl;
-       	cout<<"---------------------------------------------------------------------------------"<<endl;
+        cout << "--------------------------------------------------------------------------------------------------------------------------------" << endl;
+		cout<<setw(30)<<left<<"Fullname"<<setw(30)<<left<<"Username"<<setw(20)<<left<<"Contact Number"<<setw(25)<<left<<"Email"<<setw(10)<<left<<"Locked"<<endl;
+        cout << "--------------------------------------------------------------------------------------------------------------------------------" << endl;
 	}
 
    void searchByContactNumber() {
@@ -1172,15 +1217,20 @@ void writeUsersToFile() {
 class FoodList {
 private:
     Food* head;// Pointer to the head of the linked list
+    
         // Merge two sorted lists based on ascending order
  	 Food* merge(Food* left, Food* right, bool ascending) {
+ 	  // If right list is empty, return left list
         if (!left) return right;
+        // If right list is empty, return left list
         if (!right) return left;
         // Decide the merge order based on the ascending parameter
         if ((ascending && toUpperCase(left->name) <= toUpperCase(right->name)) || (!ascending && toUpperCase(left->name) >= toUpperCase(right->name))) {
-            left->next = merge(left->next, right, ascending);
+        // If left should come before right (ascending) or after right (descending)
+			left->next = merge(left->next, right, ascending);
             return left;
         } else {
+        // If right should come before left (ascending) or after left (descending)
             right->next = merge(left, right->next, ascending);
             return right;
         }
@@ -1190,26 +1240,26 @@ private:
         if (head == nullptr) return head;
         Food* slow = head;
         Food* fast = head->next;
-
+// Traverse the list with two pointers until fast reaches the end
         while (fast != nullptr && fast->next != nullptr) {
             slow = slow->next;
             fast = fast->next->next;
         }
 
-        return slow;
+        return slow;// Return the middle node
     }
-    // Perform merge sort on the list
+    	// Perform merge sort on the list
     Food* mergeSort(Food* head, bool ascending) {
         if (!head || !head->next) return head;
-
+		// Find the middle node of the list
         Food* middle = getMiddle(head);
         Food* nextToMiddle = middle->next;
 
-        middle->next = nullptr;
-
+        middle->next = nullptr;// Split the list into two halves
+		// Recursively sort the two halves
         Food* left = mergeSort(head, ascending);
         Food* right = mergeSort(nextToMiddle, ascending);
-
+		// Merge the sorted halves
         return merge(left, right, ascending);
     }
 
@@ -1259,12 +1309,13 @@ bool isFoodNameDuplicate(const string& name) {
     return false;
 }
     void addFood(const string& name, const string& category, float price) {
+    	// Allocate memory for a new Food node
         Food* newNode = new Food;
         newNode->name = name;
         newNode->category = category;
         newNode->price = price;
         newNode->next = nullptr;
-
+		// Insert the new node at the end of the linked list
         if (head == nullptr) {
             head = newNode;
         } else {
@@ -1272,6 +1323,7 @@ bool isFoodNameDuplicate(const string& name) {
             while (temp->next != nullptr) {
                 temp = temp->next;
             }
+            // Insert newNode at the end
             temp->next = newNode;
         }
     }
@@ -1384,8 +1436,8 @@ void searchByCategory(const string& targetCategory) {
     Food* temp = head; // Temporary pointer to traverse the food linked list
     int count = 0; // Count of matching food items
     string uppercaseTargetCategory = targetCategory;
-    transform(uppercaseTargetCategory.begin(), uppercaseTargetCategory.end(), uppercaseTargetCategory.begin(), ::toupper); // Convert target category to uppercase
-
+    // Convert target category to uppercase
+    transform(uppercaseTargetCategory.begin(), uppercaseTargetCategory.end(), uppercaseTargetCategory.begin(), ::toupper); 
     string word;
     stringstream ss(uppercaseTargetCategory);
 
@@ -1395,7 +1447,8 @@ void searchByCategory(const string& targetCategory) {
         temp = head;
         while (temp != nullptr) {
             string uppercaseCategory = temp->category;
-            transform(uppercaseCategory.begin(), uppercaseCategory.end(), uppercaseCategory.begin(), ::toupper); // Convert current food's category to uppercase
+             // Convert current food's category to uppercase
+            transform(uppercaseCategory.begin(), uppercaseCategory.end(), uppercaseCategory.begin(), ::toupper);
 
             // If the current food's category contains the word from the target category, print food information
             if (uppercaseCategory.find(word) != string::npos) {
@@ -1461,17 +1514,18 @@ void searchByname(const string& targetname) {
   void insertionSort(Food*& head, bool ascending) {
     if (head == nullptr || head->next == nullptr) return;
 
-    Food* sorted = nullptr;
-    Food* current = head;
-
+    Food* sorted = nullptr;// Pointer to the sorted part of the list
+    Food* current = head;// Pointer to traverse the original list
+	// Traverse through the original list
     while (current != nullptr) {
         Food* next = current->next;
-
+		// Insert current node into the sorted list
         if (ascending && (sorted == nullptr || current->price <= sorted->price) ||
             !ascending && (sorted == nullptr || current->price >= sorted->price)) {
             current->next = sorted;
-            sorted = current;
+            sorted = current;// Update sorted list head to current node
         } else {
+    // Update sorted list head to current node
             Food* temp = sorted;
             while (temp->next != nullptr && ((ascending && temp->next->price < current->price) ||
                                              (!ascending && temp->next->price > current->price))) {
@@ -1481,10 +1535,10 @@ void searchByname(const string& targetname) {
             temp->next = current;
         }
 
-        current = next;
+        current = next;// Move to the next node in the original list
     }
 
-    head = sorted;
+    head = sorted;// Update the head pointer of the original list to the sorted list head
 }
 
   void sortByPriceAscending() {
@@ -1499,11 +1553,11 @@ void sortByPriceDescending() {
 
 
 class foodmenu :public FoodList{
-	FoodList food;
+	
 	double price; 
 	public: 
 	foodmenu()
-	{   food.readDataFromFile("fooddata.txt");}
+	{   readDataFromFile("fooddata.txt");}
 	friend bool isValidPrice(double price);
 	void displayaction()
 	{	string ans,fname,foodname;
@@ -1513,7 +1567,7 @@ class foodmenu :public FoodList{
 		cout<<"===================================================================="<<endl;
 		cout<<setw(3)<<"No.  "<<setw(35)<<left<<"Food"<<setw(15)<<"Category"<<setw(10)<<"Price"<<endl;
 		cout<<"--------------------------------------------------------------------"<<endl;
-		food.printFoodList();
+		printFoodList();
 		cout<<"\nOperation:\n1.Add Food"<<endl;
 		cout<<"2.Edit Food"<<endl;
 		cout<<"3.Delete Food"<<endl;
@@ -1551,7 +1605,7 @@ cout << "9.Sort Food by price high to low (insertion sort)" << endl;
 		    cout<<"----------------------------"<<endl;
 		    cout << "Enter Category Name : ";
 		    getline(cin, category);
-		    food.searchByCategory(category);
+		    searchByCategory(category);
 		    displayaction();
 		}else if (ans == "5") {
 		    cin.ignore();
@@ -1562,30 +1616,30 @@ cout << "9.Sort Food by price high to low (insertion sort)" << endl;
 		    cout<<"----------------------------"<<endl;
 		    cout << "Enter Food Name : ";
 		    getline(cin, foodname);
-		    food.searchByname(foodname);
+		    searchByname(foodname);
 		    displayaction();
 		}
 		else if (ans == "6") {
                 valid = true;
-                food.sortByNameAZ();
+                sortByNameAZ();
                 system("cls");
                 cout << "Food sorted by A-Z :\n";
                 displayaction();
             } else if (ans == "7") {
                 valid = true;
-                food.sortByNameZA();
+                sortByNameZA();
                 system("cls");
                 cout << "Food sorted by Z-A :\n";
                 displayaction();
             }else if (ans == "8") {
     valid = true;
-    food.sortByPriceAscending();
+    sortByPriceAscending();
     system("cls");
     cout << "Food sorted by price in ascending order:\n";
     displayaction();
 } else if (ans == "9") {
     valid = true;
-    food.sortByPriceDescending();
+    sortByPriceDescending();
     system("cls");
     cout << "Food sorted by price in descending order:\n";
     displayaction();
@@ -1657,7 +1711,7 @@ else{
 		fflush(stdin);	
 			getline(cin,foodname);
 			if(!checkinput(foodname)){
-				if(food.isFoodNameDuplicate(foodname))
+				if(isFoodNameDuplicate(foodname))
 			{
 				cout<<"Food Name Already Exist.Please try again.\n"<<endl;
 			}
@@ -1666,7 +1720,7 @@ else{
 				system("cls");
 				displayaction();break;
 			}
-		}while(food.isFoodNameDuplicate(foodname));
+		}while(isFoodNameDuplicate(foodname));
 	
 		cout<<"Please enter food price : RM";
 		while (!(cin >> price) || !isValidPrice(price)) {
@@ -1685,8 +1739,8 @@ else{
     	cin.clear();
     	if(confirm=="Y"||confirm=="y")
     	{
-    		food.addFood(foodname,category,price);
-    		food.saveDataToFile("fooddata.txt");
+    		addFood(foodname,category,price);
+    		saveDataToFile("fooddata.txt");
     		system("cls");
     		cout<<"\nNew Food Added Successfully!\nBack To Food Managemnt Page\n"<<endl;
     		displayaction();
@@ -1713,134 +1767,178 @@ else{
 	}
 	
 void editfood() {
-	system("cls");
-    cout<<"===================================================================="<<endl;
-	cout<<"	Edit Food  "<<endl;
-	cout<<"===================================================================="<<endl;
-	cout<<setw(3)<<"No.  "<<setw(35)<<left<<"Food"<<setw(15)<<"Category"<<setw(10)<<"Price"<<endl;
-	cout<<"--------------------------------------------------------------------"<<endl;
-	food.printFoodList();
-	cout << "\nIf you want to go back to the previous page, please enter 'b'." << endl;
-	cout << "If you want to go back to the main page, please enter 'm'." << endl;
-	cout << "If you want to exit, please enter 'e'." << endl;
+    system("cls");
+    cout << "====================================================================" << endl;
+    cout << "    Edit Food  " << endl;
+    cout << "====================================================================" << endl;
+    cout << setw(3) << "No.  " << setw(35) << left << "Food" << setw(15) << "Category" << setw(10) << "Price" << endl;
+    cout << "--------------------------------------------------------------------" << endl;
+    printFoodList();
+    cout << "\nIf you want to go back to the previous page, please enter 'b'." << endl;
+    cout << "If you want to go back to the main page, please enter 'm'." << endl;
+    cout << "If you want to exit, please enter 'e'." << endl;
+    
     string input;
-    bool valid=false;
-    bool inputvalid=false;
+    bool inputvalid = false;
     int index;
     cout << "Enter the index of the food item you want to edit: ";
-    cin >> input;   
-do {
-if(input=="B"||input=="b"){
-	inputvalid=true;
-    	system("cls");
-    	displayaction();
-	}
-    if (!checkinput(input)) {
-        if (isdigit(input[0])) { 
-            index = stoi(input);
-            if (index < 1 || index > food.getCount()) {
-                cout << "Invalid index. Please enter a valid index: ";
-                cin >> input;
+    cin >> input;
+
+    do {
+        if (input == "B" || input == "b") {
+            inputvalid = true;
+            system("cls");
+            displayaction();
+            return; // Exit the function after going back
+        }
+        if (!checkinput(input)) {
+            if (isdigit(input[0])) {
+                index = stoi(input);
+                if (index < 1 || index > getCount()) {
+                    cout << "Invalid index. Please enter a valid index: ";
+                    cin >> input;
+                } else {
+                    inputvalid = true;
+                }
             } else {
-                inputvalid = true;
+                cout << "Invalid input. Please enter a valid input: ";
+                cin >> input;
             }
         } else {
-            cout << "Invalid input. Please enter a valid input: ";
-            cin >> input;
+            inputvalid = true;
         }
-    } else {
-        inputvalid = true;
-    }
-} while (!inputvalid);
-
- 
+    } while (!inputvalid);
 
     // Retrieve the food item from the linked list
-    Food* temp = food.getFoodAtIndex(index);
-	displayfooddetails(temp->category,temp->name,temp->price);
+    Food* temp = getFoodAtIndex(index);
+
+    // Create a copy of the original food item
+    Food original = *temp;
+
+    // Display the details of the food item to be edited
+    displayfooddetails(temp->category, temp->name, temp->price);
+    
     // Prompt the user for changes
     string newName, newCategory;
-    double price;
-    string category,ans,confirm;
+    double newPrice;
+    string ans, confirm, choice;
     cout << "\nIf you want to go back to the Menu Management page, please enter 'b'." << endl;
-		cout << "If you want to go back to the main page, please enter 'm'." << endl;
-		cout << "If you want to exit, please enter 'e'." << endl;
-    do{
-		cout<<"Please enter new food name  : ";
-		fflush(stdin);	
-			getline(cin,newName);
-			if(!checkinput(newName)){
-				if(food.isFoodNameDuplicate(newName))
-			{
-				cout<<"Food Name Already Exist.Please try again.\n"<<endl;
-			}
-			}
-			if(newName=="B"||newName=="b"){
-				system("cls");
-				displayaction();break;
-			}
-		}while(food.isFoodNameDuplicate(newName));
-    cout<<"\nCategory"<<endl;
-	cout<<"1.Main Course"<<endl;
-	cout<<"2.Side Dishes  "<<endl;
-	cout<<"3.Beverages "<<endl;
-    cout << "Choose the new category: ";
-    cin>>ans;
-    do{	cin.clear();
-		if(ans=="1")
-		{	valid=true;
-			newCategory="Main Course";
-		}else if(ans=="2")
-		{	valid=true;
-			newCategory="Side Dishes";
-		}
-		else if(ans=="3")
-		{	valid=true;
-			newCategory="Beverages";
-		}else{
-			cout<<"Invalid selection.Please reenter your selection : ";
-			cin>>ans;}
-		}while(!valid);
-    cout << "\nEnter the new price: RM";
-    while (!(cin >> price) || !isValidPrice(price)) {
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Invalid input. Please enter a valid food price : RM";
-        } else {
-            cout << "Invalid price. Please enter a valid positive number: ";
-        }
-    }
-	displayfooddetails(newCategory,newName,price);
-	cout<<"Please Check the new food details\nAre you sure to edit the food ? [Y/N]:";
-    do{
-    	cin>>confirm;
-    	cin.clear();
-    	if(confirm=="Y"||confirm=="y")
-    	{
-    		// Update the food item
-		    temp->name = newName;
-		    temp->category = newCategory;
-		    temp->price = price;
-		
-		    // Save the updated data to the file
-		    food.saveDataToFile("fooddata.txt");
-			system("cls");
-		    cout << "\nFood item edited successfully!\n" << endl;
-		    displayaction();
-    		valid=true;
-    		
-		}else if(confirm=="N"||confirm=="n")
-		{	valid=true;system("cls");
+    cout << "If you want to go back to the main page, please enter 'm'." << endl;
+    cout << "If you want to exit, please enter 'e'." << endl;
 
-			cout<<"Back to menu management page..."<<endl;
-			displayaction();
-		}else{
-			cout<<"Invalid Input.Please reenter your input : ";
-		}
-	}while(!valid);
+    do {
+        cout << "\nChoose what you want to edit:" << endl;
+        cout << "1. Food Name" << endl;
+        cout << "2. Category" << endl;
+        cout << "3. Price" << endl;
+        
+        cout << "Enter your choice: ";
+        cin >> choice;
+cin.clear(); // Clear error flags
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+        if (choice == "1") {
+        	do{
+        	cout << "Enter the new food name: ";
+            getline(cin, newName);
+
+            if (!checkinput(newName)) {
+                if (isFoodNameDuplicate(newName)) {
+                    cout << "Food name already exists. Please try again." << endl;
+                    continue;
+                }else{
+            	temp->name = newName;
+            	break;
+			} 
+        }cin.clear(); // Clear error flags
+    cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+			}while(true);
+            
+        } else if (choice == "2") {
+            cout << "\nCategory options:" << endl;
+            cout << "1. Main Course" << endl;
+            cout << "2. Side Dishes" << endl;
+            cout << "3. Beverages" << endl;
+            cout << "Choose the new category (1, 2, 3): ";
+            cin >> ans;
+
+            while (true) {
+                if (ans == "1") {
+                    newCategory = "Main Course";
+                    break;
+                } else if (ans == "2") {
+                    newCategory = "Side Dishes";
+                    break;
+                } else if (ans == "3") {
+                    newCategory = "Beverages";
+                    break;
+                } else {
+                    cout << "Invalid selection. Please enter 1, 2, or 3: ";
+                    cin >> ans;
+                }
+            }
+            temp->category = newCategory;
+        } else if (choice == "3") {
+            cout << "Enter the new price (RM): ";
+            while (!(cin >> newPrice) || !isValidPrice(newPrice)) {
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << "Invalid input. Please enter a valid food price (RM): ";
+                } else {
+                    cout << "Invalid price. Please enter a valid positive number: ";
+                }
+            }
+            temp->price = newPrice;
+        } else if (choice == "b" || choice == "B") {
+            // Restore original data
+            *temp = original;
+            system("cls");
+            displayaction();
+            return; // Exit the function after going back
+        } else if (choice == "m" || choice == "M") {
+            // Restore original data
+            *temp = original;
+            system("cls");
+            mainmenu();
+            return; // Exit the function after going back
+        } else if (choice == "e" || choice == "E") {
+            exit(0);
+        } else {
+            cout << "Invalid selection. Please enter 1, 2, 3, 'b', 'm', or 'e': ";
+        }
+
+        // Ask if user wants to edit another property
+        cout << "\nDo you want to edit another property? (yes/no): ";
+        cin >> confirm;
+    } while (confirm == "yes" || confirm == "Yes" || confirm == "YES"|| confirm == "Y"|| confirm == "y");
+
+    displayfooddetails(temp->category, temp->name, temp->price);
+    cout << "Please check the new food details.\nAre you sure to edit the food? [Y/N]: ";
     
+    bool valid = false;
+    do {
+        cin >> confirm;
+        cin.clear();
+        if (confirm == "Y" || confirm == "y") {
+            // Save the updated data to the file
+            saveDataToFile("fooddata.txt");
+            system("cls");
+            cout << "\nFood item edited successfully!\n" << endl;
+            displayaction();
+            valid = true;
+        } else if (confirm == "N" || confirm == "n") {
+            // Restore original data
+            *temp = original;
+            valid = true;
+            system("cls");
+            cout << "Back to menu management page..." << endl;
+            displayaction();
+        } else {
+            cout << "Invalid input. Please reenter your input: ";
+        }
+    } while (!valid);
 }
+
 void deletefood() {
     system("cls");
     bool inputvalid=false;
@@ -1850,7 +1948,7 @@ void deletefood() {
     cout << "====================================================================" << endl;
     cout << setw(3) << "No.  " << setw(35) << left << "Food" << setw(15) << "Category" << setw(10) << "Price" << endl;
     cout << "--------------------------------------------------------------------" << endl;
-    food.printFoodList();
+	printFoodList();
     cout << "\nIf you want to go back to the previous page, please enter 'b'." << endl;
     cout << "If you want to go back to the main page, please enter 'm'." << endl;
     cout << "If you want to exit, please enter 'e'." << endl;
@@ -1866,7 +1964,7 @@ void deletefood() {
 	    if (!checkinput(nameToDelete)) {
 	        if (isdigit(nameToDelete[0])) { 
 	            index = stoi(nameToDelete);
-	            if (index < 1 || index > food.getCount()) {
+	            if (index < 1 || index > getCount()) {
 	                cout << "Invalid index. Please enter a valid index: ";
 	                getline(cin, nameToDelete);
 	            } else {
@@ -1882,7 +1980,7 @@ void deletefood() {
 } while (!inputvalid);
  	bool deleteans=false;
  	string confirm;
- 	Food* temp = food.getFoodAtIndex(index);
+ 	Food* temp = getFoodAtIndex(index);
 	displayfooddetails(temp->category,temp->name,temp->price);
 	cout<<"Are you sure you want to delete this food ? [Y/N] : ";
 	do{
@@ -1892,8 +1990,8 @@ void deletefood() {
     	{
 		   nameToDelete=temp->name;
 		 // Delete the food item
-	    food.deleteFood(nameToDelete);
-	    food.saveDataToFile("fooddata.txt");
+	    deleteFood(nameToDelete);
+	    saveDataToFile("fooddata.txt");
 	    system("cls");
 	    cout<<"Food deleted successfully!!!"<<endl;
 	    cout<<"Back to menu management page..."<<endl;
@@ -2131,8 +2229,8 @@ void viewUnsortedReservations() {
              << "1. View And Sort All Reservation by Date Ascending" << endl
              << "2. View And Sort All Reservation by Date Descending" << endl
              << "3. View And Sort All Reservation by Name Ascending" << endl
-             << "4. Search All Reservation by Name and sort by date ascending" << endl
-             << "5. Search All Reservation by Date and sort by name ascending" << endl
+             << "4. Search Reservation by Name and sort by date ascending" << endl
+             << "5. Search Reservation by Date and sort by name ascending" << endl
              << "\nIf you want to go back to the main page, please enter 'm'." << endl
     		 << "If you want to exit, please enter 'e'." << endl
              << "Please enter your selection: ";mainMenu();
@@ -2520,7 +2618,7 @@ string adminname,password;
 	cin.clear();
 	if(selection=="e"||selection=="E")
 	{
-		cout<<"\nEnd Program....."<<endl;
+		 cout << "\nLogging out..." << endl;
 		exit(0);
 	}
 	else if(selection=="1")
